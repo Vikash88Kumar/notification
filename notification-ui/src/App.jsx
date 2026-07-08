@@ -34,7 +34,7 @@ const getDeviceToken = async () => {
       
       if (token) {
         console.log("Real Token:", token);
-        await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8080'}/users/1/token`, {
+        await fetch(`https://notification-olgf.onrender.com/users/1/token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fcm_token: token })
@@ -184,7 +184,7 @@ const handleFireEvent = async (e) => {
     
     try {
       // 🚀 THE REAL PIPELINE: Hitting your FastAPI Gateway
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8080'}/events?user_id=1&event_type=user.alert`, {
+      const response = await fetch(`https://notification-olgf.onrender.com/events?user_id=1&event_type=user.alert`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
