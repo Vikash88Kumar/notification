@@ -83,4 +83,9 @@ def update_user_token(user_id: int, new_token: str):
             user.fcm_token = new_token
             db.commit() # This is critical to save the data
             return True
-        return False
+        else:
+            # Auto-create the user for the demo
+            user = User(id=user_id, email="demo@example.com", fcm_token=new_token)
+            db.add(user)
+            db.commit()
+            return True

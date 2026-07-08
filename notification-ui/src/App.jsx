@@ -196,8 +196,13 @@ const handleFireEvent = async (e) => {
       });
 
       if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
+        let errorMsg = `API error: ${response.status}`;
+        try {
+            const errData = await response.json();
+            errorMsg = `Backend Error: ${JSON.stringify(errData)}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
+      }
 
     // 🚀 FIRE AN ACTUAL NATIVE DESKTOP/PHONE NOTIFICATION
     if ("Notification" in window && Notification.permission === "granted") {
@@ -215,7 +220,7 @@ const handleFireEvent = async (e) => {
 
     } catch (error) {
       console.error("Pipeline Error:", error);
-      alert("Failed to reach the backend! Is FastAPI running on port 8080?");
+      alert(`Failed to reach the backend! ${error.message}`);
       setIsSending(false);
     }
   };
