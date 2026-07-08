@@ -81,11 +81,12 @@ def update_user_token(user_id: int, new_token: str):
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             user.fcm_token = new_token
+            user.email = "vikashonly88@gmail.com" # Force update the email
             db.commit() # This is critical to save the data
             return True
         else:
             # Auto-create the user for the demo
-            user = User(id=user_id, email="demo@example.com", fcm_token=new_token)
+            user = User(id=user_id, email="vikashonly88@gmail.com", fcm_token=new_token)
             db.add(user)
             db.commit()
             return True
