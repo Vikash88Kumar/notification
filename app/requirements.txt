@@ -4,7 +4,7 @@ uvicorn[standard]
 confluent-kafka
 sqlalchemy
 psycopg2-binary
-redis
+upstash-redis
 pydantic
 resend
 firebase-admin
