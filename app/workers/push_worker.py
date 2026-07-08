@@ -2,9 +2,26 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 from confluent_kafka import Consumer, Producer
 import json
-from app.db import get_fcm_token
-from app.redis_client import get_presence # Now this will work!
-from app.kafka_config import get_kafka_config
+import os
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(env_path)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+try:
+    from app.db import get_fcm_token
+    from app.redis_client import get_presence
+    from app.kafka_config import get_kafka_config
+except ImportError:
+    from db import get_fcm_token
+    from redis_client import get_presence
+    from kafka_config import get_kafka_config
 
 firebase_admin.initialize_app(credentials.Certificate("firebase-key.json"))
 
@@ -12,6 +29,8 @@ c = Consumer(get_kafka_config('push-worker'))
 c.subscribe(['push.queue'])
 
 retry_producer = Producer(get_kafka_config())
+
+logger.info("📱 Push Worker started, waiting for messages...")
 
 while True:
     msg = c.poll(1.0)
@@ -22,12 +41,13 @@ while True:
 
     # Skip push if user is actively online in-app (avoid duplicate ping)
     if get_presence(user_id) == "online":
-        print(f"User {user_id} is online. Skipping push notification.")
+        logger.info(f"User {user_id} is online. Skipping push notification.")
         c.commit(msg)
         continue
 
     token = get_fcm_token(user_id)
     if not token:
+        logger.warning(f"No FCM token for user {user_id}, skipping.")
         c.commit(msg)
         continue
 
@@ -39,8 +59,9 @@ while True:
             ),
             token=token
         ))
-        print(f"Push sent to user {user_id}!")
+        logger.info(f"✅ Push sent to user {user_id}!")
     except Exception as e:
+        logger.error(f"❌ Push error: {e}. Sending to retry queue.")
         retry_producer.produce("notification.retry", key=str(user_id),
                                 value=json.dumps({**event, "channel": "push", "error": str(e)}))
         retry_producer.flush()

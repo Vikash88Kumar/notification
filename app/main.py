@@ -58,10 +58,11 @@ async def update_token(user_id: int, data: dict):
     except ImportError:
         from db import update_user_token
     token = data.get("fcm_token")
+    email = data.get("email")  # Optional: include email if provided
     if not token:
         raise HTTPException(status_code=400, detail="Missing fcm_token")
     
-    success = update_user_token(user_id, token)
+    success = update_user_token(user_id, token, email)
     if success:
         return {"status": "success"}
     raise HTTPException(status_code=404, detail="User not found")

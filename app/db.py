@@ -76,17 +76,19 @@ def get_fcm_token(user_id: int):
         user = db.query(User).filter(User.id == user_id).first()
         return user.fcm_token if user else None
 
-def update_user_token(user_id: int, new_token: str):
+def update_user_token(user_id: int, new_token: str, email: str = None):
     with SessionLocal() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             user.fcm_token = new_token
-            user.email = "vikashonly88@gmail.com" # Force update the email
-            db.commit() # This is critical to save the data
+            # Only update email if provided
+            if email:
+                user.email = email
+            db.commit()
             return True
         else:
-            # Auto-create the user for the demo
-            user = User(id=user_id, email="vikashonly88@gmail.com", fcm_token=new_token)
+            # Auto-create the user
+            user = User(id=user_id, email=email, fcm_token=new_token)
             db.add(user)
             db.commit()
             return True

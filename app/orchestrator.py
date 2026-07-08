@@ -1,6 +1,16 @@
 # app/orchestrator.py
 import json
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
 from confluent_kafka import Consumer, Producer
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 try:
     from .db import get_pref
@@ -14,7 +24,7 @@ c.subscribe(['notification.events'])
 
 producer = Producer(get_kafka_config())
 
-print("🚦 Orchestrator started, routing traffic...")
+logger.info("🚦 Orchestrator started, routing traffic...")
 
 while True:
     msg = c.poll(1.0)
@@ -24,7 +34,7 @@ while True:
     event = json.loads(msg.value())
     user_id = event.get("user_id")
     
-    print(f"Received event for User {user_id}. Routing...")
+    logger.info(f"Received event for User {user_id}. Routing...")
 
     # 1. ALWAYS send to In-App (the database)
     producer.produce("inapp.queue", value=json.dumps(event))

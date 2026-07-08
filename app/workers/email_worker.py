@@ -2,57 +2,90 @@
 import resend
 from confluent_kafka import Consumer, Producer
 import json
-from app.db import get_user_email
-from app.redis_client import get_presence
-from app.kafka_config import get_kafka_config
+import os
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
 
-# TODO: Replace with your actual Resend API Key
-resend.api_key = "re_WqXvAcAC_3sbX2zth4Ps6sZ7syMjFZ38w"
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent.parent / ".env"  # d:/notification/.env
+load_dotenv(env_path)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Get Resend API Key from environment variable
+resend.api_key = os.getenv("RESEND_API_KEY")
+if not resend.api_key:
+    logger.warning("⚠️ RESEND_API_KEY not set in environment variables. Email service will not work!")
+    raise ValueError("RESEND_API_KEY environment variable is required")
+
+try:
+    from app.db import get_user_email, save_notification
+    from app.redis_client import get_presence
+    from app.kafka_config import get_kafka_config
+except ImportError:
+    from db import get_user_email, save_notification
+    from redis_client import get_presence
+    from kafka_config import get_kafka_config
 
 c = Consumer(get_kafka_config('email-worker'))
 c.subscribe(['email.queue'])
 
 retry_producer = Producer(get_kafka_config())
 
-print("Email Worker started, waiting for messages...")
+logger.info("✉️ Email Worker started, waiting for messages...")
 
 while True:
     msg = c.poll(1.0)
     if msg is None or msg.error():
         continue
-        
-    event = json.loads(msg.value())
-    user_id = event["user_id"]
-
-    # Skip email if user is actively online in-app (avoid spam)
-    if get_presence(user_id) == "online":
-        print(f"User {user_id} is online. Skipping email.")
-        c.commit(msg)
-        continue
-
-    email_address = get_user_email(user_id)
-    if not email_address:
-        print(f"No email found for user {user_id}, skipping.")
-        c.commit(msg)
-        continue
-
+    
     try:
-        # Send the email via Resend
-        r = resend.Emails.send({
-            "from": "onboarding@resend.dev", # Resend's default testing domain
-            "to": email_address,
-            "subject": "New Notification",
-            "html": f"<p>{event.get('payload', '')}</p>"
-        })
-        print(f"Email sent to {email_address}!")
-        
-    except Exception as e:
-        print(f"Resend error: {e}. Sending to retry queue.")
-        retry_producer.produce(
-            "notification.retry", 
-            key=str(user_id),
-            value=json.dumps({**event, "channel": "email", "error": str(e)})
-        )
-        retry_producer.flush()
+        event = json.loads(msg.value())
+        user_id = event["user_id"]
 
-    c.commit(msg)
+        # Skip email if user is actively online in-app (avoid spam)
+        if get_presence(user_id) == "online":
+            logger.info(f"User {user_id} is online. Skipping email.")
+            save_notification(event, "email", "skipped")
+            c.commit(msg)
+            continue
+
+        email_address = get_user_email(user_id)
+        if not email_address:
+            logger.warning(f"No email found for user {user_id}, skipping.")
+            save_notification(event, "email", "skipped")
+            c.commit(msg)
+            continue
+
+        try:
+            # Validate email format
+            if "@" not in email_address or "." not in email_address.split("@")[1]:
+                raise ValueError(f"Invalid email format: {email_address}")
+            
+            # Send the email via Resend
+            r = resend.Emails.send({
+                "from": "onboarding@resend.dev",
+                "to": email_address,
+                "subject": event.get("event_type", "New Notification"),
+                "html": f"<p>{event.get('payload', '')}</p>"
+            })
+            logger.info(f"✅ Email sent to {email_address}!")
+            save_notification(event, "email", "sent")
+            
+        except Exception as e:
+            logger.error(f"❌ Resend error: {e}. Sending to retry queue.")
+            retry_producer.produce(
+                "notification.retry", 
+                key=str(user_id),
+                value=json.dumps({**event, "channel": "email", "error": str(e)})
+            )
+            retry_producer.flush()
+            save_notification(event, "email", "failed")
+
+        c.commit(msg)
+    
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse message: {e}")
+        c.commit(msg)
