@@ -1,0 +1,11 @@
+# requirements.txt
+fastapi
+uvicorn[standard]
+confluent-kafka
+sqlalchemy
+psycopg2-binary
+redis
+pydantic
+resend
+firebase-admin
+python-dotenv
