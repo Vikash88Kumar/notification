@@ -2,6 +2,20 @@ import uuid
 from fastapi import FastAPI, WebSocket
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
+import os
+import firebase_admin
+from firebase_admin import credentials
+
+secret_file_path = "/etc/secrets/Firebase-key"
+
+if os.path.exists(secret_file_path):
+    # Use the file mounted by Render
+    cred = credentials.Certificate(secret_file_path)
+else:
+    # Fallback to local file for development
+    cred = credentials.Certificate("firebase-key.json")
+
+firebase_admin.initialize_app(cred)
 
 try:
     from .db import SessionLocal, init_db
