@@ -52,28 +52,33 @@ def health_check():
 
 @app.post("/users/{user_id}/token")
 async def update_token(user_id: int, data: dict):
+    from fastapi import HTTPException
     try:
         from .db import update_user_token
     except ImportError:
         from db import update_user_token
     token = data.get("fcm_token")
     if not token:
-        return {"error": "Missing fcm_token"}, 400
+        raise HTTPException(status_code=400, detail="Missing fcm_token")
     
     success = update_user_token(user_id, token)
     if success:
         return {"status": "success"}
-    return {"error": "User not found"}, 404
+    raise HTTPException(status_code=404, detail="User not found")
 
 @app.post("/events")
 def create_event(user_id: int, event_type: str, payload: dict):
+    from fastapi import HTTPException
     event = {
         "event_id": str(uuid.uuid4()),
         "user_id": user_id,
         "event_type": event_type,
         "payload": payload,
     }
-    publish("notification.events", key=str(user_id), value=event)
+    try:
+        publish("notification.events", key=str(user_id), value=event)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
     return {"status": "queued", "event_id": event["event_id"]}
 
 
