@@ -2,7 +2,12 @@
 from confluent_kafka import Producer
 import json
 
-p = Producer({'bootstrap.servers': 'localhost:9092'})
+try:
+    from .kafka_config import get_kafka_config
+except ImportError:
+    from kafka_config import get_kafka_config
+
+p = Producer(get_kafka_config())
 
 def publish(topic: str, key: str, value: dict):
     p.produce(topic, key=key.encode(), value=json.dumps(value).encode())

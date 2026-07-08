@@ -4,15 +4,14 @@ from confluent_kafka import Consumer, Producer
 import json
 from app.db import get_fcm_token
 from app.redis_client import get_presence # Now this will work!
+from app.kafka_config import get_kafka_config
 
 firebase_admin.initialize_app(credentials.Certificate("firebase-key.json"))
 
-# Changed localhost to 127.0.0.1
-c = Consumer({'bootstrap.servers': '127.0.0.1:9092', 'group.id': 'push-worker'})
+c = Consumer(get_kafka_config('push-worker'))
 c.subscribe(['push.queue'])
 
-# Changed localhost to 127.0.0.1
-retry_producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
+retry_producer = Producer(get_kafka_config())
 
 while True:
     msg = c.poll(1.0)

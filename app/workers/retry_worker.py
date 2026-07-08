@@ -2,15 +2,12 @@
 import time
 import json
 from confluent_kafka import Consumer, Producer
+from app.kafka_config import get_kafka_config
 
-c = Consumer({
-    'bootstrap.servers': '127.0.0.1:9092',
-    'group.id': 'retry-worker',
-    'auto.offset.reset': 'earliest'
-})
+c = Consumer(get_kafka_config('retry-worker'))
 c.subscribe(['notification.retry'])
 
-producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
+producer = Producer(get_kafka_config())
 
 print("Retry Worker started, waiting for failed messages...")
 

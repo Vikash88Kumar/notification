@@ -1,16 +1,18 @@
 # app/orchestrator.py
 import json
 from confluent_kafka import Consumer, Producer
-from app.db import get_pref
 
-c = Consumer({
-    'bootstrap.servers': '127.0.0.1:9092',
-    'group.id': 'orchestrator-group',
-    'auto.offset.reset': 'earliest'
-})
+try:
+    from .db import get_pref
+    from .kafka_config import get_kafka_config
+except ImportError:
+    from db import get_pref
+    from kafka_config import get_kafka_config
+
+c = Consumer(get_kafka_config('orchestrator-group'))
 c.subscribe(['notification.events'])
 
-producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
+producer = Producer(get_kafka_config())
 
 print("🚦 Orchestrator started, routing traffic...")
 

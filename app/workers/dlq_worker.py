@@ -1,12 +1,9 @@
 # app/workers/dlq_worker.py
 import json
 from confluent_kafka import Consumer
+from app.kafka_config import get_kafka_config
 
-c = Consumer({
-    'bootstrap.servers': '127.0.0.1:9092',
-    'group.id': 'dlq-worker',
-    'auto.offset.reset': 'earliest'
-})
+c = Consumer(get_kafka_config('dlq-worker'))
 c.subscribe(['notification.dlq'])
 
 print("DLQ Worker started, monitoring for permanent failures...")

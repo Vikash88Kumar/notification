@@ -4,18 +4,15 @@ from confluent_kafka import Consumer, Producer
 import json
 from app.db import get_user_email
 from app.redis_client import get_presence
+from app.kafka_config import get_kafka_config
 
 # TODO: Replace with your actual Resend API Key
 resend.api_key = "re_Vmz3tGXD_C6TyzeTpHpnjGmqDsFAgZe6a"
 
-c = Consumer({
-    'bootstrap.servers': '127.0.0.1:9092',
-    'group.id': 'email-worker',
-    'auto.offset.reset': 'earliest'
-})
+c = Consumer(get_kafka_config('email-worker'))
 c.subscribe(['email.queue'])
 
-retry_producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
+retry_producer = Producer(get_kafka_config())
 
 print("Email Worker started, waiting for messages...")
 

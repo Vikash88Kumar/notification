@@ -2,8 +2,9 @@
 from confluent_kafka import Consumer
 import json, uuid
 from app.db import save_notification  # insert into notifications table
+from app.kafka_config import get_kafka_config
 
-c = Consumer({'bootstrap.servers': 'localhost:9092', 'group.id': 'inapp-worker'})
+c = Consumer(get_kafka_config('inapp-worker'))
 c.subscribe(['inapp.queue'])
 
 while True:
