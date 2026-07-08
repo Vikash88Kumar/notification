@@ -52,7 +52,10 @@ def health_check():
 
 @app.post("/users/{user_id}/token")
 async def update_token(user_id: int, data: dict):
-    from app.db import update_user_token
+    try:
+        from .db import update_user_token
+    except ImportError:
+        from db import update_user_token
     token = data.get("fcm_token")
     if not token:
         return {"error": "Missing fcm_token"}, 400
