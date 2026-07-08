@@ -7,7 +7,7 @@ from app.redis_client import get_presence
 from app.kafka_config import get_kafka_config
 
 # TODO: Replace with your actual Resend API Key
-resend.api_key = "re_Vmz3tGXD_C6TyzeTpHpnjGmqDsFAgZe6a"
+resend.api_key = "re_WqXvAcAC_3sbX2zth4Ps6sZ7syMjFZ38w"
 
 c = Consumer(get_kafka_config('email-worker'))
 c.subscribe(['email.queue'])
