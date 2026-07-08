@@ -30,7 +30,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # Vite's default port
+    allow_origins=["http://localhost:5173", "https://notification-microservice-1jx2.onrender.com", "*"], # Added deployed frontend and wildcard
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
