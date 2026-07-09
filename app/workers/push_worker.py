@@ -23,7 +23,14 @@ except ImportError:
     from redis_client import get_presence
     from kafka_config import get_kafka_config
 
-firebase_admin.initialize_app(credentials.Certificate("firebase-key.json"))
+secret_file_path = "/etc/secrets/Firebase-key"
+
+if os.path.exists(secret_file_path):
+    cred = credentials.Certificate(secret_file_path)
+else:
+    cred = credentials.Certificate("firebase-key.json")
+
+firebase_admin.initialize_app(cred)
 
 c = Consumer(get_kafka_config('push-worker'))
 c.subscribe(['push.queue'])

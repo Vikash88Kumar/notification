@@ -23,27 +23,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-  useEffect(() => {
-    const getDeviceToken = async () => {
-      try {
-        const token = await getToken(messaging, { 
-          vapidKey: 'BA6CZ5D9U-OB9PAlrc7RjIkdDQHjWrype-_sAZUhBZK32lau5GA8LW_uKsKew3YMFLZlFCb5wBxqtzGcwaIzymY' 
+  const [userEmail, setUserEmail] = useState('');
+  const [isRegistered, setIsRegistered] = useState(false);
+
+  const registerDevice = async () => {
+    if (!userEmail || !userEmail.includes('@')) {
+      return alert("Please enter a valid email address!");
+    }
+    try {
+      const token = await getToken(messaging, { 
+        vapidKey: 'BA6CZ5D9U-OB9PAlrc7RjIkdDQHjWrype-_sAZUhBZK32lau5GA8LW_uKsKew3YMFLZlFCb5wBxqtzGcwaIzymY' 
+      });
+      
+      if (token) {
+        console.log("Real Token:", token);
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://notification-olgf.onrender.com';
+        await fetch(`${baseUrl}/users/1/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            fcm_token: token,
+            email: userEmail
+          })
         });
-        
-        if (token) {
-          console.log("Real Token:", token);
-          await fetch(`${import.meta.env.VITE_API_URL}/users/1/token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fcm_token: token })
-          });
-        }
-      } catch (err) {
-        console.error("Token error:", err);
+        setIsRegistered(true);
+        alert("Device & Email Registered Successfully!");
       }
-    };
-    getDeviceToken();
-  }, []);
+    } catch (err) {
+      console.error("Token error:", err);
+      alert("Failed to get device token. Please allow notification permissions in your browser.");
+    }
+  };
 
   // Set up WebSocket for User Presence (Online Status)
   useEffect(() => {
@@ -117,6 +127,33 @@ const messaging = getMessaging(app);
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Device Registration Banner */}
+        <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+          <div>
+            <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+              <Mail size={20} /> Device Registration
+            </h3>
+            <p className="text-sm text-indigo-700 mt-1">Register your email and allow permissions to receive offline notifications to your inbox and device.</p>
+          </div>
+          <div className="flex gap-2 w-full md:w-auto">
+            <input 
+              type="email" 
+              placeholder="Enter your email address" 
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              disabled={isRegistered}
+              className="px-4 py-2 rounded-lg border border-indigo-200 w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
+            />
+            <button 
+              onClick={registerDevice}
+              disabled={isRegistered}
+              className={`px-4 py-2 rounded-lg font-medium text-white transition-all whitespace-nowrap disabled:opacity-90 ${isRegistered ? 'bg-emerald-500 cursor-default' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'}`}
+            >
+              {isRegistered ? 'Registered ✓' : 'Register'}
+            </button>
+          </div>
+        </div>
+
         {activeTab === 'arch' && <ArchitectureTab />}
         {activeTab === 'api' && <ApiGuideTab />}
         {activeTab === 'demo' && <LiveDemoTab />}
