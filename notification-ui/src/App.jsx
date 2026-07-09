@@ -142,7 +142,7 @@ export default function App() {
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#demo" className="hover:text-white transition-colors">Live Demo</a>
             <a href="#docs" className="hover:text-white transition-colors">API Docs</a>
-            <a href="https://github.com" target="_blank" className="bg-white text-black px-4 py-2 rounded-full hover:bg-slate-200 transition-colors">
+            <a href="https://github.com/Vikash88Kumar/notification" target="_blank" className="bg-white text-black px-4 py-2 rounded-full hover:bg-slate-200 transition-colors">
               View on GitHub
             </a>
           </div>
