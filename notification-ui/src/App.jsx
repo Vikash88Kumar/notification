@@ -252,7 +252,7 @@ export default function App() {
             {[
               { id: 'demo', icon: Layout, label: 'Interactive Demo' },
               { id: 'api', icon: Terminal, label: 'API Playground' },
-              { id: 'arch', icon: Workflow, label: 'Architecture Diagram' },
+              { id: 'arch', icon: Workflow, label: 'Exact Architecture Diagram' },
               { id: 'sim', icon: Activity, label: 'Flow Simulator' }
             ].map((tab) => (
               <button
