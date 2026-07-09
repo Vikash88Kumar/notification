@@ -335,6 +335,7 @@ fetch('https://api.yourdomain.com/users/1/presence', {
 function LiveDemoTab() {
   const [channel, setChannel] = useState('push');
   const [payload, setPayload] = useState('Welcome to the system!');
+  const [eventType, setEventType] = useState('user.alert');
   const [forceDelivery, setForceDelivery] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
@@ -353,7 +354,7 @@ function LiveDemoTab() {
         },
         body: JSON.stringify({
           user_id: "1",
-          event_type: "user.alert",
+          event_type: eventType,
           force_delivery: forceDelivery,
           channels: [channel],
           payload: {
@@ -374,6 +375,13 @@ function LiveDemoTab() {
     }
   };
 
+  const getPreviewText = () => {
+    if (eventType === 'friend_request') return "Someone wants to connect with you.";
+    if (eventType === 'friend_accepted') return "A user is now your friend.";
+    if (eventType === 'friend_message') return `A friend: ${payload}`;
+    return payload;
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid md:grid-cols-2 gap-12 items-center">
       
@@ -381,6 +389,19 @@ function LiveDemoTab() {
       <div className="bg-white/5 p-8 rounded-3xl border border-white/10 h-fit">
         <h2 className="text-2xl font-bold text-white mb-6">Test the Pipeline</h2>
         <form onSubmit={handleFireEvent} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Event Type (Format)</label>
+            <select
+              value={eventType}
+              onChange={(e) => setEventType(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-white"
+            >
+              <option value="user.alert">Default Format</option>
+              <option value="friend_request">Friend Request</option>
+              <option value="friend_accepted">Friend Accepted</option>
+              <option value="friend_message">Friend Message</option>
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-2">Message Payload</label>
             <input 
@@ -475,7 +496,7 @@ function LiveDemoTab() {
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                         {channel === 'push' ? 'Push Notification' : 'In-App Alert'}
                       </p>
-                      <p className="text-slate-200 font-medium text-sm leading-tight">{payload}</p>
+                      <p className="text-slate-200 font-medium text-sm leading-tight">{getPreviewText()}</p>
                     </div>
                   </div>
                 </div>
@@ -508,7 +529,7 @@ function LiveDemoTab() {
                       <p className="text-xs text-slate-500">to: user@example.com</p>
                     </div>
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">{payload}</p>
+                  <p className="text-slate-300 text-sm leading-relaxed">{getPreviewText()}</p>
                   <div className="mt-6 pt-4 border-t border-white/5 flex gap-2">
                      <div className="h-8 w-24 bg-white/10 rounded-md"></div>
                   </div>
