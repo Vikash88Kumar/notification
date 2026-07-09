@@ -45,8 +45,13 @@ while True:
         event = json.loads(msg.value())
         user_id = event.get("user_id")
 
-        # Skip email if user is actively online in-app (avoid spam)
-        if get_presence(user_id) == "online":
+        # 1. Check if presence was provided directly in the payload (Stateless SaaS)
+        presence = event.get("presence")
+        if not presence:
+            presence = get_presence(user_id)
+            
+        force_delivery = event.get("force_delivery", False)
+        if presence == "online" and not force_delivery:
             logger.info(f"User {user_id} is online. Skipping email.")
             save_notification(event, "email", "skipped")
             c.commit(msg)

@@ -67,6 +67,18 @@ async def update_token(user_id: str, data: dict):
         return {"status": "success"}
     raise HTTPException(status_code=404, detail="User not found")
 
+@app.post("/users/{user_id}/presence")
+async def set_user_presence(user_id: str):
+    """Manually set a user as 'online' in Redis for 5 minutes."""
+    set_presence(user_id, "online", ttl=300)
+    return {"status": "success", "presence": "online"}
+
+@app.delete("/users/{user_id}/presence")
+async def clear_user_presence(user_id: str):
+    """Manually mark a user as 'offline' in Redis."""
+    clear_presence(user_id)
+    return {"status": "success", "presence": "offline"}
+
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 
@@ -80,6 +92,8 @@ class EventPayload(BaseModel):
     payload: Dict[str, Any]
     channels: Optional[List[str]] = None
     contact_info: Optional[ContactInfo] = None
+    presence: Optional[str] = None
+    force_delivery: Optional[bool] = False
 
 from fastapi import Security, Depends
 from fastapi.security import APIKeyHeader
@@ -102,12 +116,15 @@ def create_event(event_req: EventPayload, api_key: str = Depends(get_api_key)):
         "user_id": event_req.user_id,
         "event_type": event_req.event_type,
         "payload": event_req.payload,
+        "force_delivery": event_req.force_delivery,
     }
     
     if event_req.channels is not None:
         event["channels"] = event_req.channels
     if event_req.contact_info is not None:
         event["contact_info"] = event_req.contact_info.model_dump()
+    if event_req.presence is not None:
+        event["presence"] = event_req.presence
 
     try:
         publish("notification.events", key=str(event_req.user_id), value=event)

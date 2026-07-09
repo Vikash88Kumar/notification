@@ -47,7 +47,13 @@ while True:
     user_id = event["user_id"]
 
     # Skip push if user is actively online in-app (avoid duplicate ping)
-    if get_presence(user_id) == "online":
+    # 1. Check if presence was provided directly in the payload (Stateless SaaS)
+    presence = event.get("presence")
+    if not presence:
+        presence = get_presence(user_id)
+        
+    force_delivery = event.get("force_delivery", False)
+    if presence == "online" and not force_delivery:
         logger.info(f"User {user_id} is online. Skipping push notification.")
         c.commit(msg)
         continue
