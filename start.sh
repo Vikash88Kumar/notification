@@ -1,9 +1,7 @@
 #!/bin/bash
-set -e
+# Do not use set -e so that if one background worker fails, it doesn't kill the whole script
 
-echo "Starting FastAPI server..."
-# Start the web server in the background
-uvicorn app.main:app --host 0.0.0.0 --port $PORT &
+PORT="${PORT:-10000}"
 
 echo "Starting Orchestrator..."
 python -m app.orchestrator &
@@ -15,5 +13,6 @@ python -m app.workers.email_worker &
 python -m app.workers.retry_worker &
 python -m app.workers.dlq_worker &
 
-# Wait for all background processes
-wait
+echo "Starting FastAPI server on port $PORT..."
+# Run the web server in the foreground using exec so it becomes the main process
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT
