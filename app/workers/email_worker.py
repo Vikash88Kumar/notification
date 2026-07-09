@@ -64,12 +64,36 @@ while True:
             if "@" not in email_address or "." not in email_address.split("@")[1]:
                 raise ValueError(f"Invalid email format: {email_address}")
             
+            # Create a beautiful Shareit HTML template
+            payload_data = event.get('payload', {})
+            # If payload is a dict with 'item', extract it, otherwise use as string
+            message_text = payload_data.get('item', str(payload_data)) if isinstance(payload_data, dict) else str(payload_data)
+
+            html_content = f"""
+            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 30px 20px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">Shareit</h1>
+                </div>
+                <div style="padding: 40px 30px; background-color: #ffffff; color: #334155;">
+                    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">You have a new update</h2>
+                    <div style="background-color: #f8fafc; border-left: 4px solid #6366f1; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+                        <p style="font-size: 16px; line-height: 1.6; margin: 0; color: #334155;">{message_text}</p>
+                    </div>
+                    <a href="https://notification-olgf.onrender.com" style="display: inline-block; background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 6px; font-weight: bold; margin-top: 10px;">View Dashboard</a>
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 13px;">
+                        <p style="margin: 0;">This is an automated message from Shareit.</p>
+                        <p style="margin: 5px 0 0 0;">© 2026 Shareit Inc. All rights reserved.</p>
+                    </div>
+                </div>
+            </div>
+            """
+
             # Send the email via Resend
             r = resend.Emails.send({
-                "from": "onboarding@resend.dev",
+                "from": "Shareit <onboarding@resend.dev>",
                 "to": email_address,
-                "subject": event.get("event_type", "New Notification"),
-                "html": f"<p>{event.get('payload', '')}</p>"
+                "subject": f"Shareit Update: {event.get('event_type', 'Notification')}",
+                "html": html_content
             })
             logger.info(f"✅ Email sent to {email_address}!")
             save_notification(event, "email", "sent")
