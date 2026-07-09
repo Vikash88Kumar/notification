@@ -1,10 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Server, Database, Mail, Smartphone, Bell, Workflow, 
-  Code, Layout, Zap, ArrowRight, CheckCircle2, Terminal, Shield, Activity
+  Code, Layout, Zap, ArrowRight, CheckCircle2, Terminal, Shield, Activity,
+  GitBranch, Wifi, WifiOff, MessageCircle, Check, X, RotateCcw, UserPlus, Heart, AtSign, AlertTriangle
 } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
+
+const COL = {
+  app: 70,
+  api: 200,
+  postgres: 330,
+  redis: 460,
+  kafka: 590,
+  orchestrator: 720,
+  workers: 850,
+};
+ 
+const ACTORS = [
+  { id: 'app', label: "Friend's App" },
+  { id: 'api', label: 'Notification API' },
+  { id: 'postgres', label: 'Postgres DB' },
+  { id: 'redis', label: 'Redis Cache' },
+  { id: 'kafka', label: 'Kafka Events' },
+  { id: 'orchestrator', label: 'Orchestrator' },
+  { id: 'workers', label: 'Workers' },
+];
+ 
+const DIAGRAM_BOTTOM = 940;
+ 
+// ---- colors, matched to the screenshot's dark theme ----
+const C = {
+  bg: '#181818',
+  headerFill: '#262626',
+  headerStroke: '#52525b',
+  headerText: '#e4e4e7',
+  lifeline: '#52525b',
+  msgLine: '#71717a',
+  dot: '#38bdf8',
+  msgText: '#a1a1aa',
+  phaseFill: '#262626',
+  phaseStroke: '#52525b',
+  altStroke: '#52525b',
+  altTagFill: '#262626',
+  condText: '#9ca3af',
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('demo');
@@ -212,7 +252,8 @@ export default function App() {
             {[
               { id: 'demo', icon: Layout, label: 'Interactive Demo' },
               { id: 'api', icon: Terminal, label: 'API Playground' },
-              { id: 'arch', icon: Workflow, label: 'Architecture' }
+              { id: 'arch', icon: Workflow, label: 'Architecture Diagram' },
+              { id: 'sim', icon: Activity, label: 'Flow Simulator' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -231,7 +272,8 @@ export default function App() {
         </div>
 
         <div className="min-h-[600px]">
-          {activeTab === 'arch' && <ArchitectureTab />}
+          {activeTab === 'arch' && <SequenceDiagramExact />}
+          {activeTab === 'sim' && <NotificationSimulator />}
           {activeTab === 'api' && <ApiGuideTab />}
           {activeTab === 'demo' && <LiveDemoTab />}
         </div>
@@ -251,34 +293,139 @@ export default function App() {
 
 // --- TAB COMPONENTS ---
 
-function ArchitectureTab() {
-  const nodes = [
-    { name: 'Client App', icon: Smartphone, color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-    { name: 'FastAPI Gateway', icon: Server, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
-    { name: 'Kafka Queues', icon: Workflow, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-    { name: 'Worker Nodes', icon: Zap, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-    { name: 'Neon / Upstash', icon: Database, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
-  ];
-
+function Arrow({ from, to, y, label }) {
+  const x1 = COL[from];
+  const x2 = COL[to];
+  const mid = (x1 + x2) / 2;
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white/5 p-12 rounded-3xl border border-white/10 text-center">
-        <h2 className="text-3xl font-bold text-white mb-12">Event-Driven Architecture</h2>
-        <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-          {nodes.map((node, i) => (
-            <React.Fragment key={node.name}>
-              <div className="flex flex-col items-center gap-4 text-center w-32 group cursor-pointer">
-                <div className={`p-6 rounded-2xl border ${node.color} group-hover:bg-white/10 transition-all shadow-[0_0_15px_rgba(0,0,0,0.2)]`}>
-                  <node.icon size={36} />
-                </div>
-                <span className="font-medium text-sm text-slate-300">{node.name}</span>
-              </div>
-              {i < nodes.length - 1 && (
-                <ArrowRight className="text-slate-600 hidden md:block" size={24} />
-              )}
-            </React.Fragment>
+    <g>
+      <line x1={x1} y1={y} x2={x2} y2={y} stroke={C.msgLine} strokeWidth="1" />
+      <circle cx={x1} cy={y} r="3" fill={C.dot} />
+      <circle cx={x2} cy={y} r="3" fill={C.dot} />
+      <text x={mid} y={y - 8} textAnchor="middle" fontSize="10.5" fill={C.msgText}>
+        {label}
+      </text>
+    </g>
+  );
+}
+ 
+function SelfLoop({ id, y, label }) {
+  const x = COL[id];
+  return (
+    <g>
+      <path d={`M ${x} ${y} h 34 v 18 h -34`} fill="none" stroke={C.msgLine} strokeWidth="1" />
+      <circle cx={x} cy={y} r="3" fill={C.dot} />
+      <text x={x + 42} y={y + 13} fontSize="10.5" fill={C.msgText}>
+        {label}
+      </text>
+    </g>
+  );
+}
+ 
+function PhaseBadge({ y, label }) {
+  const w = Math.max(160, label.length * 6.2 + 24);
+  const x = 460 - w / 2;
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height="24" rx="4" fill={C.phaseFill} stroke={C.phaseStroke} strokeWidth="1" />
+      <text x={x + w / 2} y={y + 16} textAnchor="middle" fontSize="10.5" fontWeight="500" fill={C.headerText}>
+        {label}
+      </text>
+    </g>
+  );
+}
+ 
+ function SequenceDiagramExact() {
+  return (
+    <div className="rounded-2xl border border-zinc-700 p-6" style={{ background: C.bg }}>
+      <div className="overflow-x-auto">
+        <svg viewBox={`0 0 1150 ${DIAGRAM_BOTTOM}`} style={{ minWidth: 1150 }} width="100%">
+          {/* lifelines */}
+          {ACTORS.map((a) => (
+            <line
+              key={a.id}
+              x1={COL[a.id]}
+              y1="50"
+              x2={COL[a.id]}
+              y2={DIAGRAM_BOTTOM - 10}
+              stroke={C.lifeline}
+              strokeDasharray="3 3"
+              strokeWidth="1"
+            />
           ))}
-        </div>
+ 
+          {/* actor header boxes */}
+          {ACTORS.map((a) => (
+            <g key={a.id}>
+              <rect
+                x={COL[a.id] - 58}
+                y="14"
+                width="116"
+                height="32"
+                rx="6"
+                fill={C.headerFill}
+                stroke={C.headerStroke}
+                strokeWidth="1"
+              />
+              <text
+                x={COL[a.id]}
+                y="34"
+                textAnchor="middle"
+                fontSize="11"
+                fontWeight="500"
+                fill={C.headerText}
+              >
+                {a.label}
+              </text>
+            </g>
+          ))}
+ 
+          {/* setup */}
+          <SelfLoop id="app" y="90" label="App requests notification permissions" />
+          <Arrow from="app" to="api" y="150" label="POST /users/token (Saves Email & FCM Token)" />
+          <Arrow from="api" to="postgres" y="195" label="Updates User Record" />
+          <Arrow from="app" to="api" y="240" label="Connects via WebSocket" />
+          <Arrow from="api" to="redis" y="285" label="Marks user as 'Online'" />
+ 
+          <PhaseBadge y="320" label="Phase 2: Event Trigger (e.g., Friend Request)" />
+          <Arrow from="api" to="kafka" y="375" label="Publishes to 'notification.events' topic" />
+ 
+          <PhaseBadge y="410" label="Phase 3: Orchestration & Routing" />
+          <Arrow from="kafka" to="orchestrator" y="465" label="Consumes new event" />
+          <Arrow from="orchestrator" to="postgres" y="510" label="Checks user preferences (if enabled)" />
+          <Arrow from="orchestrator" to="kafka" y="555" label="Routes to 'push.queue' & 'email.queue'" />
+ 
+          <PhaseBadge y="590" label="Phase 4: Smart Delivery" />
+          <Arrow from="kafka" to="workers" y="645" label="Email/Push Workers consume event" />
+          <Arrow from="workers" to="redis" y="690" label="Checks if user is currently online" />
+ 
+          {/* alt fragment */}
+          <rect
+            x="20"
+            y="715"
+            width="1110"
+            height="205"
+            fill="none"
+            stroke={C.altStroke}
+            strokeWidth="1"
+          />
+          <path d="M 20 800 h 1110" stroke={C.altStroke} strokeDasharray="4 3" strokeWidth="1" />
+          <rect x="20" y="715" width="52" height="20" fill={C.altTagFill} stroke={C.altStroke} strokeWidth="1" />
+          <text x="46" y="729" textAnchor="middle" fontSize="10" fontWeight="600" fill={C.headerText}>
+            alt
+          </text>
+          <text x="82" y="729" fontSize="10.5" fontStyle="italic" fill={C.condText}>
+            [User is Online]
+          </text>
+          <SelfLoop id="workers" y="755" label="Skips notification (Avoids spamming active user)" />
+ 
+          <text x="30" y="816" fontSize="10.5" fontStyle="italic" fill={C.condText}>
+            [User is Offline]
+          </text>
+          <Arrow from="workers" to="postgres" y="850" label="Fetches FCM Token / Email" />
+          <SelfLoop id="workers" y="875" label="Formats predefined 'Friend Request' template" />
+          <Arrow from="workers" to="app" y="905" label="Delivers via Firebase/Resend!" />
+        </svg>
       </div>
     </div>
   );
@@ -544,6 +691,370 @@ function LiveDemoTab() {
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const CAT = {
+  entry: { text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', ring: 'ring-blue-400/50' },
+  pipeline: { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30', ring: 'ring-purple-400/50' },
+  delivery: { text: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/30', ring: 'ring-teal-400/50' },
+};
+
+const MAIN_STEPS = [
+  { id: 'client', label: 'Client app', desc: 'Event triggered', icon: Smartphone, cat: 'entry' },
+  { id: 'gateway', label: 'API gateway', desc: 'Publishes event', icon: Server, cat: 'entry' },
+  { id: 'kafka', label: 'Kafka', desc: "'notification.events'", icon: Workflow, cat: 'pipeline' },
+  {
+    id: 'pref',
+    label: 'Check preference',
+    desc: 'Postgres lookup',
+    icon: GitBranch,
+    cat: 'pipeline',
+    decision: true,
+    passIf: (s) => s.preference === 'enabled',
+    skipMsg: 'Stopped — notification preference is off',
+  },
+  {
+    id: 'presence',
+    label: 'Check presence',
+    desc: 'Redis lookup',
+    icon: Wifi,
+    cat: 'pipeline',
+    decision: true,
+    passIf: (s) => s.presence === 'offline',
+    skipMsg: 'Stopped — user is online, skip to avoid spamming',
+  },
+];
+
+const BRANCHES = [
+  {
+    id: 'email',
+    queue: { id: 'email_queue', label: 'Email queue', desc: 'Kafka topic', icon: Mail, cat: 'pipeline' },
+    deliver: { id: 'email_deliver', label: 'Resend', desc: 'Email delivery', icon: Mail, cat: 'delivery' },
+  },
+  {
+    id: 'push',
+    queue: { id: 'push_queue', label: 'Push queue', desc: 'Kafka topic', icon: Bell, cat: 'pipeline' },
+    deliver: { id: 'push_deliver', label: 'Firebase FCM', desc: 'Push delivery', icon: Bell, cat: 'delivery' },
+  },
+  {
+    id: 'inapp',
+    queue: { id: 'inapp_queue', label: 'In-app queue', desc: 'Kafka topic', icon: MessageCircle, cat: 'pipeline' },
+    deliver: { id: 'inapp_deliver', label: 'WebSocket', desc: 'In-app delivery', icon: MessageCircle, cat: 'delivery' },
+  },
+];
+
+const EVENTS = [
+  { id: 'friend_request', label: 'Friend request', icon: UserPlus },
+  { id: 'post_like', label: 'Post like', icon: Heart },
+  { id: 'comment', label: 'New comment', icon: MessageCircle },
+  { id: 'mention', label: 'Mention', icon: AtSign },
+];
+
+function NodeCard({ step, status }) {
+  const c = CAT[step.cat];
+  const Icon = step.icon;
+  const isSkipped = status === 'skipped';
+  const isActive = status === 'active';
+  const isDone = status === 'done';
+
+  return (
+    <div className="flex flex-col items-center gap-2 w-28 shrink-0">
+      <div
+        className={`relative p-4 rounded-2xl border transition-all duration-300 ${c.bg} ${
+          isSkipped ? 'border-red-500/30 opacity-40 grayscale' : c.border
+        } ${isActive ? `ring-4 ${c.ring} scale-110` : ''}`}
+      >
+        <Icon size={24} className={isSkipped ? 'text-red-400' : c.text} />
+        {isDone && (
+          <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 rounded-full p-0.5">
+            <Check size={10} className="text-white" />
+          </span>
+        )}
+        {isSkipped && (
+          <span className="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full p-0.5">
+            <X size={10} className="text-white" />
+          </span>
+        )}
+      </div>
+      <div className="text-center">
+        <div className="text-xs font-medium text-slate-300">{step.label}</div>
+        <div className="text-[10px] text-slate-500">{step.desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function NotificationSimulator() {
+  const [presence, setPresence] = useState('offline');
+  const [preference, setPreference] = useState('enabled');
+  const [simulateError, setSimulateError] = useState(false);
+  const [activeEvent, setActiveEvent] = useState(null);
+  const [statuses, setStatuses] = useState({});
+  const [log, setLog] = useState([]);
+  const [running, setRunning] = useState(false);
+  const [reachedFanout, setReachedFanout] = useState(false);
+  const runId = useRef(0);
+
+  const reset = () => {
+    setStatuses({});
+    setLog([]);
+    setActiveEvent(null);
+    setReachedFanout(false);
+  };
+
+  const runEvent = async (event) => {
+    if (running) return;
+    setStatuses({});
+    setLog([]);
+    setReachedFanout(false);
+    setActiveEvent(event.id);
+    setRunning(true);
+    const myRun = ++runId.current;
+    const state = { presence, preference };
+
+    for (const step of MAIN_STEPS) {
+      if (runId.current !== myRun) return;
+      setStatuses((s) => ({ ...s, [step.id]: 'active' }));
+      await sleep(600);
+      if (runId.current !== myRun) return;
+
+      if (step.decision && !step.passIf(state)) {
+        setStatuses((s) => ({ ...s, [step.id]: 'skipped' }));
+        setLog((l) => [...l, { ok: false, text: step.skipMsg }]);
+        setRunning(false);
+        return;
+      }
+      setStatuses((s) => ({ ...s, [step.id]: 'done' }));
+      setLog((l) => [...l, { ok: true, text: `${step.label} — ${step.desc}` }]);
+    }
+
+    if (runId.current !== myRun) return;
+    setReachedFanout(true);
+    setStatuses((s) => {
+      const next = { ...s };
+      BRANCHES.forEach((b) => (next[b.queue.id] = 'active'));
+      return next;
+    });
+    await sleep(600);
+    if (runId.current !== myRun) return;
+    setStatuses((s) => {
+      const next = { ...s };
+      BRANCHES.forEach((b) => (next[b.queue.id] = 'done'));
+      return next;
+    });
+    setLog((l) => [...l, ...BRANCHES.map((b) => ({ ok: true, text: `${b.queue.label} — routed` }))]);
+
+    await sleep(300);
+    if (runId.current !== myRun) return;
+    setStatuses((s) => {
+      const next = { ...s };
+      BRANCHES.forEach((b) => (next[b.deliver.id] = 'active'));
+      return next;
+    });
+    await sleep(600);
+    if (runId.current !== myRun) return;
+    
+    if (simulateError) {
+      setStatuses((s) => {
+        const next = { ...s };
+        BRANCHES.forEach((b) => (next[b.deliver.id] = 'skipped'));
+        return next;
+      });
+      setLog((l) => [...l, { ok: false, text: `Delivery failed (simulated error). Routing to retry queue.` }]);
+
+      await sleep(600);
+      if (runId.current !== myRun) return;
+      setStatuses((s) => ({ ...s, retry_queue: 'active' }));
+      
+      await sleep(600);
+      if (runId.current !== myRun) return;
+      setStatuses((s) => ({ ...s, retry_queue: 'done', retry_worker: 'active' }));
+      setLog((l) => [...l, { ok: true, text: `Retry queue — routed` }]);
+
+      await sleep(600);
+      if (runId.current !== myRun) return;
+      setStatuses((s) => ({ ...s, retry_worker: 'skipped' }));
+      setLog((l) => [...l, { ok: false, text: `Retry worker — failed again (max retries exceeded)` }]);
+
+      await sleep(600);
+      if (runId.current !== myRun) return;
+      setStatuses((s) => ({ ...s, dlq: 'active' }));
+      
+      await sleep(600);
+      if (runId.current !== myRun) return;
+      setStatuses((s) => ({ ...s, dlq: 'done' }));
+      setLog((l) => [...l, { ok: false, text: `DLQ — message dead-lettered for manual review` }]);
+      
+    } else {
+      setStatuses((s) => {
+        const next = { ...s };
+        BRANCHES.forEach((b) => (next[b.deliver.id] = 'done'));
+        return next;
+      });
+      setLog((l) => [...l, ...BRANCHES.map((b) => ({ ok: true, text: `${b.deliver.label} — ${b.deliver.desc}` }))]);
+    }
+    
+    setRunning(false);
+  };
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white/5 p-8 md:p-10 rounded-3xl border border-white/10">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-white mb-2">Notification flow simulator</h2>
+          <p className="text-sm text-slate-500">Set the user's state, then pick an event to run it through</p>
+        </div>
+
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-2 text-center">
+            1. User state
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex rounded-lg border border-white/10 overflow-hidden">
+              {['enabled', 'disabled'].map((v) => (
+                <button
+                  key={v}
+                  disabled={running}
+                  onClick={() => setPreference(v)}
+                  className={`px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+                    preference === v ? 'bg-purple-500/10 text-purple-400' : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  Preference: {v}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex rounded-lg border border-white/10 overflow-hidden">
+              <button
+                disabled={running}
+                onClick={() => setPresence('online')}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+                  presence === 'online' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <Wifi size={14} /> Online
+              </button>
+              <button
+                disabled={running}
+                onClick={() => setPresence('offline')}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+                  presence === 'offline' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <WifiOff size={14} /> Offline
+              </button>
+            </div>
+            
+            <div className="flex rounded-lg border border-white/10 overflow-hidden ml-4">
+              <button
+                disabled={running}
+                onClick={() => setSimulateError(true)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+                  simulateError ? 'bg-red-500/10 text-red-400' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                 Error: ON
+              </button>
+              <button
+                disabled={running}
+                onClick={() => setSimulateError(false)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+                  !simulateError ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                 Error: OFF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-md mx-auto mb-10">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-2 text-center">
+            2. Trigger an event
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {EVENTS.map((ev) => {
+              const Icon = ev.icon;
+              const isActive = activeEvent === ev.id;
+              return (
+                <button
+                  key={ev.id}
+                  disabled={running}
+                  onClick={() => runEvent(ev)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors disabled:opacity-50 ${
+                    isActive
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                      : 'border-white/10 text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  <Icon size={15} />
+                  {ev.label}
+                </button>
+              );
+            })}
+          </div>
+          {(log.length > 0 || running) && (
+            <button
+              onClick={reset}
+              disabled={running}
+              className="flex items-center gap-1.5 mx-auto mt-3 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-50"
+            >
+              <RotateCcw size={12} /> Reset
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-start justify-center gap-3 overflow-x-auto pb-2">
+          {MAIN_STEPS.map((step, i) => (
+            <React.Fragment key={step.id}>
+              <NodeCard step={step} status={statuses[step.id] || 'idle'} />
+              {i < MAIN_STEPS.length - 1 && <div className="w-6 h-px bg-white/10 mt-7 shrink-0" />}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {reachedFanout && (
+          <div className="flex flex-col items-center mt-2 mb-2">
+            <div className="w-px h-6 bg-white/10" />
+          </div>
+        )}
+        {reachedFanout && (
+          <div className="flex flex-wrap items-start justify-center gap-8 mb-8">
+            {BRANCHES.map((b) => (
+              <div key={b.id} className="flex items-center gap-3">
+                <NodeCard step={b.queue} status={statuses[b.queue.id] || 'idle'} />
+                <div className="w-6 h-px bg-white/10 mt-[-24px]" />
+                <NodeCard step={b.deliver} status={statuses[b.deliver.id] || 'idle'} />
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {reachedFanout && (statuses['retry_queue'] || simulateError) && (
+           <div className="flex flex-col items-center mt-2 mb-8 opacity-0 animate-in fade-in fill-mode-forwards delay-300">
+              <div className="text-xs font-medium uppercase tracking-wide text-red-400 mb-4">Error Recovery Pipeline</div>
+              <div className="flex items-center gap-3">
+                 <NodeCard step={{ id: 'retry_queue', label: 'Retry queue', desc: 'Kafka topic', icon: RotateCcw, cat: 'pipeline' }} status={statuses['retry_queue'] || 'idle'} />
+                 <div className="w-6 h-px bg-white/10 mt-[-24px]" />
+                 <NodeCard step={{ id: 'retry_worker', label: 'Retry worker', desc: 'Attempt again', icon: Server, cat: 'pipeline' }} status={statuses['retry_worker'] || 'idle'} />
+                 <div className="w-6 h-px bg-white/10 mt-[-24px]" />
+                 <NodeCard step={{ id: 'dlq', label: 'DLQ', desc: 'Dead Letter Queue', icon: AlertTriangle, cat: 'entry' }} status={statuses['dlq'] || 'idle'} />
+              </div>
+           </div>
+        )}
+
+        <div className="max-w-md mx-auto space-y-1.5 min-h-[40px]">
+          {log.map((l, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm">
+              {l.ok ? <Check size={14} className="text-emerald-500 shrink-0" /> : <X size={14} className="text-red-500 shrink-0" />}
+              <span className={l.ok ? 'text-slate-400' : 'text-red-400 font-medium'}>{l.text}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
