@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Server, Database, Mail, Smartphone, Bell, Workflow, 
-  Code, Layout, Zap, ArrowRight, CheckCircle2 
+  Code, Layout, Zap, ArrowRight, CheckCircle2, Terminal, Shield, Activity
 } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
@@ -9,19 +9,18 @@ import { getMessaging, getToken } from "firebase/messaging";
 export default function App() {
   const [activeTab, setActiveTab] = useState('demo');
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyCXKGuwKX3zHQ9VslvrTNESCPAFON12lYA",
+    authDomain: "notification-service-ed93d.firebaseapp.com",
+    projectId: "notification-service-ed93d",
+    storageBucket: "notification-service-ed93d.firebasestorage.app",
+    messagingSenderId: "351765879932",
+    appId: "1:351765879932:web:d474b0c86e13f855ccfdf9",
+    measurementId: "G-2MPEQH3TTK"
+  };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCXKGuwKX3zHQ9VslvrTNESCPAFON12lYA",
-  authDomain: "notification-service-ed93d.firebaseapp.com",
-  projectId: "notification-service-ed93d",
-  storageBucket: "notification-service-ed93d.firebasestorage.app",
-  messagingSenderId: "351765879932",
-  appId: "1:351765879932:web:d474b0c86e13f855ccfdf9",
-  measurementId: "G-2MPEQH3TTK"
-};
-
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
 
   const [userEmail, setUserEmail] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
@@ -65,7 +64,6 @@ const messaging = getMessaging(app);
 
     ws.onopen = () => {
       console.log('🟢 WebSocket Connected: User is now ONLINE');
-      // Send a heartbeat every 30 seconds to keep the Redis presence active
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send('ping');
@@ -76,7 +74,6 @@ const messaging = getMessaging(app);
     };
 
     ws.onmessage = (event) => {
-      // In the future, the backend will send live notifications here!
       console.log("WebSocket Message:", event.data);
     };
 
@@ -90,50 +87,69 @@ const messaging = getMessaging(app);
   }, []);
 
   return (
-    <div className="min-h-screen font-sans text-slate-800">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div className="min-h-screen font-sans bg-[#000000] text-slate-300 selection:bg-indigo-500/30">
+      
+      {/* Navbar */}
+      <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-indigo-600 p-2 rounded-lg text-white">
-              <Zap size={20} />
+            <div className="bg-indigo-600/20 text-indigo-400 p-2 rounded-lg border border-indigo-500/20">
+              <Zap size={20} className="drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900">Notification Engine</h1>
+            <span className="text-xl font-bold text-white tracking-tight">Notification<span className="text-indigo-400">Engine</span></span>
           </div>
-          
-          {/* Navigation Tabs */}
-          <nav className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
-            {[
-              { id: 'arch', icon: Workflow, label: 'Architecture' },
-              { id: 'api', icon: Code, label: 'API Guide' },
-              { id: 'demo', icon: Layout, label: 'Live Demo' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === tab.id 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                <tab.icon size={16} />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#demo" className="hover:text-white transition-colors">Live Demo</a>
+            <a href="#docs" className="hover:text-white transition-colors">API Docs</a>
+            <a href="https://github.com" target="_blank" className="bg-white text-black px-4 py-2 rounded-full hover:bg-slate-200 transition-colors">
+              View on GitHub
+            </a>
+          </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Main Content Area */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Device Registration Banner */}
-        <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+      {/* Hero Section */}
+      <main className="relative pt-32 pb-20 overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-600/20 blur-[120px] rounded-full pointer-events-none" />
+        
+        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm font-medium mb-8">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            v2.0 Stateless API is now live
+          </div>
+          <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight max-w-4xl leading-tight mb-8">
+            The notification infrastructure for <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">modern SaaS</span>
+          </h1>
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mb-10 leading-relaxed">
+            Instantly route events to Email, Push, and In-App channels. Completely stateless, presence-aware, and built on Kafka for massive scale.
+          </p>
+          <div className="flex gap-4">
+            <button onClick={() => {
+              document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
+              setActiveTab('demo');
+            }} className="bg-white text-black px-6 py-3 rounded-lg font-medium hover:bg-slate-200 transition-all flex items-center gap-2">
+              Try Interactive Demo <ArrowRight size={18} />
+            </button>
+            <button onClick={() => {
+              document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
+              setActiveTab('api');
+            }} className="bg-white/5 border border-white/10 text-white px-6 py-3 rounded-lg font-medium hover:bg-white/10 transition-all flex items-center gap-2">
+              <Code size={18} /> View API Docs
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* Device Registration Banner */}
+      <section className="max-w-4xl mx-auto px-6 mb-24 relative z-10">
+        <div className="bg-white/5 border border-white/10 p-1 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-sm">
           <div>
-            <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-              <Mail size={20} /> Device Registration
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Mail size={20} className="text-indigo-400" /> Device Registration
             </h3>
-            <p className="text-sm text-indigo-700 mt-1">Register your email and allow permissions to receive offline notifications to your inbox and device.</p>
+            <p className="text-sm text-slate-400 mt-1">Register your email and allow permissions to receive offline push notifications to your inbox and device.</p>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
             <input 
@@ -142,22 +158,93 @@ const messaging = getMessaging(app);
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
               disabled={isRegistered}
-              className="px-4 py-2 rounded-lg border border-indigo-200 w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
+              className="px-4 py-2 rounded-lg bg-black/50 border border-white/10 w-full md:w-64 focus:outline-none focus:border-indigo-500 disabled:opacity-50 text-white"
             />
             <button 
               onClick={registerDevice}
               disabled={isRegistered}
-              className={`px-4 py-2 rounded-lg font-medium text-white transition-all whitespace-nowrap disabled:opacity-90 ${isRegistered ? 'bg-emerald-500 cursor-default' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'}`}
+              className={`px-4 py-2 rounded-lg font-medium text-white transition-all whitespace-nowrap disabled:opacity-90 ${isRegistered ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 cursor-default' : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95'}`}
             >
               {isRegistered ? 'Registered ✓' : 'Register'}
             </button>
           </div>
         </div>
+      </section>
 
-        {activeTab === 'arch' && <ArchitectureTab />}
-        {activeTab === 'api' && <ApiGuideTab />}
-        {activeTab === 'demo' && <LiveDemoTab />}
-      </main>
+      {/* Features Grid */}
+      <section id="features" className="max-w-7xl mx-auto px-6 py-24 border-t border-white/5">
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:bg-white/[0.07] transition-all">
+            <div className="bg-indigo-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-6 border border-indigo-500/30">
+              <Database className="text-indigo-400" size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-3">Stateless Payloads</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              No need to sync your database with ours. Pass the user's email or FCM token directly in the API payload and we'll deliver it instantly.
+            </p>
+          </div>
+          <div className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:bg-white/[0.07] transition-all">
+            <div className="bg-cyan-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-6 border border-cyan-500/30">
+              <Activity className="text-cyan-400" size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-3">Smart Presence</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              We detect if your user is online via WebSockets or our Presence API. If they are active in your app, we automatically suppress noisy emails to prevent spam.
+            </p>
+          </div>
+          <div className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:bg-white/[0.07] transition-all">
+            <div className="bg-pink-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-6 border border-pink-500/30">
+              <Shield className="text-pink-400" size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-3">Force Delivery</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              For critical alerts like password resets or payment receipts, pass <code>force_delivery: true</code> to bypass presence checks and guarantee delivery.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Tabs Section */}
+      <section id="demo" className="max-w-7xl mx-auto px-6 py-12">
+        
+        <div className="flex justify-center mb-12">
+          <nav className="flex space-x-2 bg-white/5 border border-white/10 p-1.5 rounded-xl backdrop-blur-md">
+            {[
+              { id: 'demo', icon: Layout, label: 'Interactive Demo' },
+              { id: 'api', icon: Terminal, label: 'API Playground' },
+              { id: 'arch', icon: Workflow, label: 'Architecture' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === tab.id 
+                    ? 'bg-white/10 text-white shadow-sm border border-white/10' 
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <tab.icon size={16} />
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="min-h-[600px]">
+          {activeTab === 'arch' && <ArchitectureTab />}
+          {activeTab === 'api' && <ApiGuideTab />}
+          {activeTab === 'demo' && <LiveDemoTab />}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 py-12 text-center text-slate-500 text-sm">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <Zap size={16} className="text-indigo-500" />
+          <span className="font-semibold text-slate-300">Notification Engine SaaS</span>
+        </div>
+        <p>Built for modern developers.</p>
+      </footer>
     </div>
   );
 }
@@ -166,28 +253,28 @@ const messaging = getMessaging(app);
 
 function ArchitectureTab() {
   const nodes = [
-    { name: 'Client App', icon: Smartphone, color: 'bg-blue-100 text-blue-700' },
-    { name: 'FastAPI Gateway', icon: Server, color: 'bg-indigo-100 text-indigo-700' },
-    { name: 'Kafka Queues', icon: Workflow, color: 'bg-purple-100 text-purple-700' },
-    { name: 'Worker Nodes', icon: Zap, color: 'bg-orange-100 text-orange-700' },
-    { name: 'Postgres / Redis', icon: Database, color: 'bg-emerald-100 text-emerald-700' }
+    { name: 'Client App', icon: Smartphone, color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+    { name: 'FastAPI Gateway', icon: Server, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
+    { name: 'Kafka Queues', icon: Workflow, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    { name: 'Worker Nodes', icon: Zap, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+    { name: 'Neon / Upstash', icon: Database, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
   ];
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-        <h2 className="text-2xl font-bold mb-8">System Architecture</h2>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white/5 p-12 rounded-3xl border border-white/10 text-center">
+        <h2 className="text-3xl font-bold text-white mb-12">Event-Driven Architecture</h2>
+        <div className="flex flex-col md:flex-row items-center justify-center gap-6">
           {nodes.map((node, i) => (
             <React.Fragment key={node.name}>
-              <div className="flex flex-col items-center gap-3 text-center w-32 group cursor-pointer">
-                <div className={`p-4 rounded-2xl ${node.color} ring-4 ring-transparent group-hover:ring-slate-100 transition-all`}>
-                  <node.icon size={32} />
+              <div className="flex flex-col items-center gap-4 text-center w-32 group cursor-pointer">
+                <div className={`p-6 rounded-2xl border ${node.color} group-hover:bg-white/10 transition-all shadow-[0_0_15px_rgba(0,0,0,0.2)]`}>
+                  <node.icon size={36} />
                 </div>
-                <span className="font-semibold text-sm">{node.name}</span>
+                <span className="font-medium text-sm text-slate-300">{node.name}</span>
               </div>
               {i < nodes.length - 1 && (
-                <ArrowRight className="text-slate-300 hidden md:block" size={24} />
+                <ArrowRight className="text-slate-600 hidden md:block" size={24} />
               )}
             </React.Fragment>
           ))}
@@ -200,39 +287,44 @@ function ArchitectureTab() {
 function ApiGuideTab() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid md:grid-cols-2 gap-6">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Smartphone size={20}/> Frontend: Get FCM Token</h2>
-        <p className="text-sm text-slate-600 mb-4">Run this in your client app (React/Next.js) to generate a device token from Google.</p>
-        <div className="bg-slate-900 text-emerald-400 p-4 rounded-xl text-sm overflow-x-auto font-mono">
-          <pre>{`import { getMessaging, getToken } from "firebase/messaging";
-
-const messaging = getMessaging();
-
-getToken(messaging, { vapidKey: 'YOUR_KEY' })
-  .then((token) => {
-    // Send token to your FastAPI backend
-    fetch('http://localhost:8080/users/1/token', {
-      method: 'POST',
-      body: JSON.stringify({ fcm_token: token })
-    });
-  });`}</pre>
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
+        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Server size={20} className="text-indigo-400"/> POST /events</h2>
+        <p className="text-sm text-slate-400 mb-6">Fire an event to the API. We handle the multi-channel routing.</p>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
+          <pre>{`fetch('https://api.yourdomain.com/events', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': 'your_secure_api_key'
+  },
+  body: JSON.stringify({
+    user_id: "customer_992",
+    event_type: "payment.success",
+    force_delivery: true, // Bypass presence
+    contact_info: {
+      email: "user@example.com",
+      fcm_token: "fGhz7..."
+    },
+    payload: {
+      item: "Payment of $49.00 received!"
+    }
+  })
+});`}</pre>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Server size={20}/> Backend: Trigger Event</h2>
-        <p className="text-sm text-slate-600 mb-4">Send an event to your FastAPI gateway. The orchestrator will handle the rest.</p>
-        <div className="bg-slate-900 text-sky-400 p-4 rounded-xl text-sm overflow-x-auto font-mono">
-          <pre>{`// POST /events?user_id=1&event_type=user.alert
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
+        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Activity size={20} className="text-cyan-400"/> Presence API</h2>
+        <p className="text-sm text-slate-400 mb-6">Manually tell the engine your user is online to suppress spam.</p>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 h-full">
+          <pre>{`// Mark User Online (expires in 5m)
+fetch('https://api.yourdomain.com/users/1/presence', {
+  method: 'POST'
+});
 
-fetch('http://192.168.29.91:8080/events?user_id=1', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    item: "Your order has shipped!"
-  })
+// Mark User Offline instantly
+fetch('https://api.yourdomain.com/users/1/presence', {
+  method: 'DELETE'
 });`}</pre>
         </div>
       </div>
@@ -243,17 +335,17 @@ fetch('http://192.168.29.91:8080/events?user_id=1', {
 function LiveDemoTab() {
   const [channel, setChannel] = useState('push');
   const [payload, setPayload] = useState('Welcome to the system!');
+  const [forceDelivery, setForceDelivery] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
 
-const handleFireEvent = async (e) => {
+  const handleFireEvent = async (e) => {
     e.preventDefault();
     setIsSending(true);
     setShowNotification(false);
     
     try {
-      // 🚀 THE REAL PIPELINE: Hitting your FastAPI Gateway
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -262,54 +354,46 @@ const handleFireEvent = async (e) => {
         body: JSON.stringify({
           user_id: "1",
           event_type: "user.alert",
+          force_delivery: forceDelivery,
+          channels: [channel],
           payload: {
-            item: `This is an offline test for vikash notification! microservice ${new Date().toLocaleTimeString()}`
+            item: payload
           }
         })
       });
 
-      if (!response.ok) {
-        let errorMsg = `API error: ${response.status}`;
-        try {
-            const errData = await response.json();
-            errorMsg = `Backend Error: ${JSON.stringify(errData)}`;
-        } catch (e) {}
-        throw new Error(errorMsg);
-      }
+      if (!response.ok) throw new Error('API Error');
 
-    // Note: Removed mock native notification to prepare for WebSocket integration.
-    
-    // Keep your internal UI preview state active too
-    setIsSending(false);
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 5000); 
+      setIsSending(false);
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 5000); 
 
     } catch (error) {
-      console.error("Pipeline Error:", error);
-      alert(`Failed to reach the backend! ${error.message}`);
+      alert(`Failed to reach backend!`);
       setIsSending(false);
     }
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid md:grid-cols-2 gap-12">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid md:grid-cols-2 gap-12 items-center">
+      
       {/* Form Controls */}
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 h-fit">
-        <h2 className="text-2xl font-bold mb-6">Trigger Notification</h2>
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 h-fit">
+        <h2 className="text-2xl font-bold text-white mb-6">Test the Pipeline</h2>
         <form onSubmit={handleFireEvent} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Message Payload</label>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Message Payload</label>
             <input 
               type="text" 
               value={payload}
               onChange={(e) => setPayload(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+              className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-white"
               placeholder="Enter message..."
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Target Channel</label>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Target Channel</label>
             <div className="grid grid-cols-3 gap-3">
               {[
                 { id: 'push', icon: Smartphone, label: 'Push' },
@@ -320,10 +404,10 @@ const handleFireEvent = async (e) => {
                   key={c.id}
                   type="button"
                   onClick={() => setChannel(c.id)}
-                  className={`flex flex-col items-center gap-2 p-3 border rounded-lg transition-all ${
+                  className={`flex flex-col items-center gap-2 p-4 border rounded-xl transition-all ${
                     channel === c.id 
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600' 
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' 
+                      : 'border-white/10 text-slate-500 hover:bg-white/5'
                   }`}
                 >
                   <c.icon size={20} />
@@ -332,10 +416,25 @@ const handleFireEvent = async (e) => {
               ))}
             </div>
           </div>
+          
+          <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+            <input 
+              type="checkbox" 
+              id="force" 
+              checked={forceDelivery}
+              onChange={(e) => setForceDelivery(e.target.checked)}
+              className="w-5 h-5 rounded border-slate-600 text-indigo-600 focus:ring-indigo-600 bg-transparent"
+            />
+            <label htmlFor="force" className="text-sm text-slate-300 cursor-pointer">
+              <span className="font-bold text-white block">Force Delivery</span>
+              <span className="text-xs text-slate-500">Bypass presence checks (simulates password reset)</span>
+            </label>
+          </div>
+
           <button 
             type="submit"
             disabled={isSending}
-            className="w-full bg-slate-900 text-white font-medium py-3 rounded-lg hover:bg-slate-800 transition-all flex justify-center items-center gap-2 disabled:opacity-50"
+            className="w-full bg-white text-black font-semibold py-4 rounded-xl hover:bg-slate-200 transition-all flex justify-center items-center gap-2 disabled:opacity-50"
           >
             {isSending ? (
               <span className="animate-pulse">Processing via Kafka...</span>
@@ -347,34 +446,36 @@ const handleFireEvent = async (e) => {
       </div>
 
       {/* Visual Preview Area */}
-      <div className="flex justify-center items-center bg-slate-100 rounded-2xl border-2 border-dashed border-slate-300 p-8">
+      <div className="flex justify-center items-center relative h-full min-h-[500px]">
+        {/* Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none" />
         
         {/* Phone Mockup for Push & In-App */}
         {(channel === 'push' || channel === 'inapp') && (
-          <div className="w-[300px] h-[600px] bg-slate-900 rounded-[3rem] p-4 shadow-2xl relative border-[8px] border-slate-800">
-            {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-2xl z-20"></div>
-            
+          <div className="w-[300px] h-[600px] bg-black rounded-[3rem] p-3 shadow-2xl relative border-[4px] border-slate-800 z-10">
             {/* Screen */}
-            <div className="w-full h-full bg-slate-50 rounded-[2rem] overflow-hidden relative">
+            <div className="w-full h-full bg-[#0a0a0a] rounded-[2.5rem] overflow-hidden relative border border-white/5">
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-xl z-20"></div>
+              
               {/* Fake App UI */}
-              <div className="bg-indigo-600 h-48 p-6 pt-12 text-white">
-                <h3 className="text-xl font-bold">My App</h3>
-                <p className="opacity-80 mt-2">Waiting for events...</p>
+              <div className="bg-indigo-600/10 border-b border-indigo-500/20 h-48 p-6 pt-12 text-white">
+                <h3 className="text-xl font-bold text-indigo-400">Demo App</h3>
+                <p className="text-sm text-slate-500 mt-2">Listening for events...</p>
               </div>
               
               {/* The Notification Pop-up */}
               {showNotification && (
-                <div className="absolute top-12 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100 animate-in slide-in-from-top-8 fade-in duration-300 z-30">
+                <div className="absolute top-12 left-4 right-4 bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white/10 animate-in slide-in-from-top-8 fade-in duration-300 z-30">
                   <div className="flex gap-3">
-                    <div className="bg-indigo-100 p-2 rounded-full h-fit text-indigo-600">
+                    <div className="bg-indigo-500/20 p-2 rounded-xl h-fit text-indigo-400 border border-indigo-500/20">
                       {channel === 'push' ? <Smartphone size={16}/> : <Bell size={16}/>}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                         {channel === 'push' ? 'Push Notification' : 'In-App Alert'}
                       </p>
-                      <p className="text-slate-900 font-medium text-sm leading-tight">{payload}</p>
+                      <p className="text-slate-200 font-medium text-sm leading-tight">{payload}</p>
                     </div>
                   </div>
                 </div>
@@ -385,31 +486,37 @@ const handleFireEvent = async (e) => {
 
         {/* Email Mockup */}
         {channel === 'email' && (
-          <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
-            <div className="bg-slate-100 border-b border-slate-200 p-3 flex gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-400"></div>
-              <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-              <div className="w-3 h-3 rounded-full bg-green-400"></div>
+          <div className="w-full max-w-md bg-[#0a0a0a] rounded-2xl shadow-2xl border border-white/10 overflow-hidden z-10 relative">
+            <div className="bg-black border-b border-white/10 p-4 flex items-center justify-between">
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-slate-700"></div>
+                <div className="w-3 h-3 rounded-full bg-slate-700"></div>
+                <div className="w-3 h-3 rounded-full bg-slate-700"></div>
+              </div>
+              <div className="text-xs text-slate-500 font-medium bg-white/5 px-3 py-1 rounded-full">Mail.app</div>
             </div>
-            <div className="p-6">
-              <h3 className="font-bold text-lg mb-1">Inbox</h3>
-              <p className="text-slate-500 text-sm mb-6 border-b pb-4">1 new message</p>
+            <div className="p-6 h-[400px]">
+              <h3 className="font-bold text-xl mb-1 text-white">Inbox</h3>
+              <p className="text-slate-500 text-sm mb-6 border-b border-white/10 pb-4">1 new message</p>
               
               {showNotification ? (
-                <div className="animate-in fade-in zoom-in-95 duration-300 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                  <div className="flex items-center gap-3 border-b pb-3 mb-3">
-                    <div className="bg-indigo-600 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">N</div>
+                <div className="animate-in fade-in zoom-in-95 duration-300 bg-white/5 p-5 rounded-xl border border-white/10 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-4">
+                    <div className="bg-indigo-500 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-[0_0_10px_rgba(99,102,241,0.5)]">N</div>
                     <div>
-                      <p className="font-bold text-sm">Notification Engine</p>
-                      <p className="text-xs text-slate-500">to: u24cs145@coed.svnit.ac.in</p>
+                      <p className="font-bold text-sm text-slate-200">Notification Engine</p>
+                      <p className="text-xs text-slate-500">to: user@example.com</p>
                     </div>
                   </div>
-                  <p className="text-slate-800">{payload}</p>
+                  <p className="text-slate-300 text-sm leading-relaxed">{payload}</p>
+                  <div className="mt-6 pt-4 border-t border-white/5 flex gap-2">
+                     <div className="h-8 w-24 bg-white/10 rounded-md"></div>
+                  </div>
                 </div>
               ) : (
-                <div className="text-center text-slate-400 py-12 flex flex-col items-center gap-2">
-                  <Mail size={32} />
-                  <p>Waiting for email events...</p>
+                <div className="text-center text-slate-600 py-20 flex flex-col items-center gap-3">
+                  <Mail size={48} className="opacity-20" />
+                  <p className="text-sm font-medium">Waiting for email events...</p>
                 </div>
               )}
             </div>
