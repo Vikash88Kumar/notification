@@ -436,118 +436,128 @@ function ApiGuideTab() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto space-y-8">
       
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-white mb-3">How Developers Integrate</h2>
-        <p className="text-slate-400">A step-by-step guide for your friends to integrate this engine into their own apps.</p>
+        <h2 className="text-3xl font-bold text-white mb-3">Notification Utility Client</h2>
+        <p className="text-slate-400">Drop this utility class into your main project to abstract away HTTP requests and API keys.</p>
       </div>
 
-      {/* Step 1 */}
+      {/* Python Utility */}
       <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
         <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-          <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">1</span> 
-          Frontend: Register Users
+          <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">🐍</span> 
+          Python Utility (FastAPI, Django, Flask)
         </h3>
         <p className="text-sm text-slate-400 mb-6 pl-11">
-          When someone signs up on your friend's app, their app requests push notification permissions to get an FCM token. They then send that token and the user's email to our API.
+          Create a file named <code>notification_client.py</code> in your main project and paste this code:
         </p>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11 mb-6">
+          <pre>{`import os
+import requests
+import logging
+
+logger = logging.getLogger(__name__)
+
+class NotificationClient:
+    def __init__(self, base_url: str = None, api_key: str = None):
+        self.base_url = base_url or os.getenv("NOTIFICATION_SERVICE_URL", "https://your-service.onrender.com").rstrip("/")
+        self.api_key = api_key or os.getenv("NOTIFICATION_API_KEY", "default-dev-key")
+        self.headers = { "X-API-Key": self.api_key, "Content-Type": "application/json" }
+
+    def register_user(self, user_id: str, email: str, fcm_token: str) -> bool:
+        try:
+            response = requests.post(f"{self.base_url}/users/{user_id}/token", json={"email": email, "fcm_token": fcm_token}, timeout=10)
+            response.raise_for_status()
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to register user {user_id}: {e}")
+            return False
+
+    def send_event(self, user_id: str, event_type: str, message: str, channels: list = None, force_delivery: bool = False) -> bool:
+        payload = {
+            "user_id": user_id, "event_type": event_type,
+            "payload": { "item": message },
+            "channels": channels or ["push", "email", "inapp"],
+            "force_delivery": force_delivery
+        }
+        try:
+            response = requests.post(f"{self.base_url}/events", json=payload, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to send event to {user_id}: {e}")
+            return False`}</pre>
+        </div>
+        <h4 className="text-lg font-bold text-white mb-2 pl-11">How to use it:</h4>
         <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
-          <pre>{`// Your friend's frontend calls YOUR API
-fetch('https://api.yourdomain.com/users/123/token', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ 
-    email: "user@example.com",
-    fcm_token: "fGhz7..." // The device token
-  })
-});`}</pre>
+          <pre>{`from notification_client import NotificationClient
+
+notifier = NotificationClient()
+
+# 1. When the user logs in:
+notifier.register_user("user-123", "test@email.com", "fcm-token-abc")
+
+# 2. When you want to alert them:
+notifier.send_event("user-123", "Fee Payment", "Please pay your tuition fee!", ["push", "email"])`}</pre>
         </div>
       </div>
 
-      {/* Step 2 */}
+      {/* Node.js Utility */}
       <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-2 h-full bg-cyan-500"></div>
+        <div className="absolute top-0 left-0 w-2 h-full bg-green-500"></div>
         <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-          <span className="bg-cyan-500/20 text-cyan-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">2</span> 
-          Frontend: Connect Presence
+          <span className="bg-green-500/20 text-green-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">🟢</span> 
+          Node.js / TypeScript Utility
         </h3>
         <p className="text-sm text-slate-400 mb-6 pl-11">
-          When a user opens your friend's app, the app connects to your WebSocket. This tells the engine the user is <strong>Online</strong>, suppressing noisy emails/pushes in favor of in-app alerts.
+          Create a file named <code>NotificationClient.js</code> in your main project and paste this code:
         </p>
-        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
-          <pre>{`// Your friend's frontend connects to YOUR WebSocket
-const ws = new WebSocket('wss://api.yourdomain.com/ws/123');`}</pre>
-        </div>
-      </div>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11 mb-6">
+          <pre>{`const axios = require('axios');
 
-      {/* Step 3 */}
-      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
-        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-          <span className="bg-indigo-500/20 text-indigo-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">3</span> 
-          Backend: Fire an Event
-        </h3>
-        <p className="text-sm text-slate-400 mb-6 pl-11">
-          When something important happens (like a new friend request), your friend's backend simply fires a single event. They don't have to write complex email or push logic.
-        </p>
-        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
-          <pre>{`// Your friend's backend calls YOUR API
-fetch('https://api.yourdomain.com/events', {
-  method: 'POST',
-  headers: { 
-    'X-API-Key': 'their_api_key', 
-    'Content-Type': 'application/json' 
-  },
-  body: JSON.stringify({
-    user_id: "123",
-    event_type: "friend_request",
-    payload: {
-      item: "Alex wants to be your friend!"
+class NotificationClient {
+  constructor(baseUrl, apiKey) {
+    this.baseUrl = (baseUrl || process.env.NOTIFICATION_SERVICE_URL || "https://your-service.onrender.com").replace(/\\/$/, "");
+    this.api = axios.create({
+      baseURL: this.baseUrl, timeout: 10000,
+      headers: { "X-API-Key": apiKey || process.env.NOTIFICATION_API_KEY || "default-dev-key", "Content-Type": "application/json" }
+    });
+  }
+
+  async registerUser(userId, email, fcmToken) {
+    try {
+      await this.api.post(\`/users/\${userId}/token\`, { email, fcm_token: fcmToken });
+      return true;
+    } catch (error) {
+      console.error(\`Failed to register \${userId}:\`, error.response?.data || error.message);
+      return false;
     }
-  })
-});`}</pre>
+  }
+
+  async sendEvent(userId, eventType, message, channels = ["push", "email", "inapp"], forceDelivery = false) {
+    try {
+      const res = await this.api.post('/events', { user_id: userId, event_type: eventType, payload: { item: message }, channels, force_delivery: forceDelivery });
+      return res.data;
+    } catch (error) {
+      console.error(\`Failed to send event to \${userId}:\`, error.response?.data || error.message);
+      return null;
+    }
+  }
+}
+module.exports = NotificationClient;`}</pre>
         </div>
-      </div>
-
-      {/* Step 4 */}
-      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500"></div>
-        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-          <span className="bg-emerald-500/20 text-emerald-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">4</span> 
-          Engine: We Handle The Rest
-        </h3>
-        <p className="text-sm text-slate-400 pl-11 leading-relaxed">
-          Your friend's job is done! Now your powerful architecture takes over:<br/><br/>
-          <strong className="text-white">1. Kafka</strong> picks up the event.<br/>
-          <strong className="text-white">2. Orchestrator</strong> checks the database to see if user 123 has notifications enabled.<br/>
-          <strong className="text-white">3. Workers</strong> check Redis to see if user 123 is currently online.<br/>
-          <strong className="text-white">4. Smart Delivery:</strong> If offline, workers immediately format the template and deliver to Firebase or Resend. If online, the system skips the noisy email and delivers via WebSocket.
-        </p>
-      </div>
-
-      {/* Step 5: Utility Client */}
-      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-2 h-full bg-purple-500"></div>
-        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-          <span className="bg-purple-500/20 text-purple-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">★</span> 
-          Pro Tip: Use the Utility Client
-        </h3>
-        <p className="text-sm text-slate-400 mb-6 pl-11">
-          Instead of making raw HTTP requests everywhere, create a reusable <code>NotificationClient</code> class in your backend. This abstracts away the URLs and API keys, making your code extremely clean.
-        </p>
+        <h4 className="text-lg font-bold text-white mb-2 pl-11">How to use it:</h4>
         <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
-          <pre>{`// 1. Initialize the client (handles API keys & URLs internally)
+          <pre>{`const NotificationClient = require('./NotificationClient');
+
 const notifier = new NotificationClient();
 
-// 2. When a user logs in, register their token once:
-await notifier.registerUser("user-123", "test@email.com", "fcm-token-abc");
+async function myAppLogic() {
+  // 1. When the user logs in:
+  await notifier.registerUser("user-123", "test@email.com", "fcm-token-abc");
 
-// 3. Trigger events cleanly anywhere in your app:
-await notifier.sendEvent(
-  "user-123",
-  "Fee Payment",
-  "Please pay your tuition fee!",
-  ["push", "email"]
-);`}</pre>
+  // 2. When you want to alert them:
+  await notifier.sendEvent("user-123", "Fee Payment", "Please pay your tuition fee!", ["push", "email"]);
+}`}</pre>
         </div>
       </div>
 
