@@ -58,7 +58,12 @@ while True:
         c.commit(msg)
         continue
 
-    token = get_fcm_token(user_id)
+    # 1. Check if token was provided directly in the payload (Stateless SaaS)
+    token = event.get("contact_info", {}).get("fcm_token")
+    if not token:
+        # 2. Fallback to querying our own database
+        token = get_fcm_token(user_id)
+
     if not token:
         logger.warning(f"No FCM token for user {user_id}, skipping.")
         c.commit(msg)
