@@ -31,7 +31,12 @@ while True:
     if msg is None or msg.error():
         continue
 
-    event = json.loads(msg.value())
+    try:
+        event = json.loads(msg.value())
+    except Exception as e:
+        logger.error(f"⚠️ Skipping malformed message: {msg.value()} - Error: {e}")
+        c.commit(msg)
+        continue
     user_id = event.get("user_id")
     
     logger.info(f"Received event for User {user_id}. Routing...")
