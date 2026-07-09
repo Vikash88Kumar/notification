@@ -23,29 +23,61 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-// Inside your main App component:
-useEffect(() => {
-const getDeviceToken = async () => {
-    try {
-      const token = await getToken(messaging, { 
-        // PASTE YOUR PUBLIC KEY HERE
-        vapidKey: 'BA6CZ5D9U-OB9PAlrc7RjIkdDQHjWrype-_sAZUhBZK32lau5GA8LW_uKsKew3YMFLZlFCb5wBxqtzGcwaIzymY' 
-      });
-      
-      if (token) {
-        console.log("Real Token:", token);
-        await fetch(`https://notification-olgf.onrender.com/users/1/token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fcm_token: token })
+  useEffect(() => {
+    const getDeviceToken = async () => {
+      try {
+        const token = await getToken(messaging, { 
+          vapidKey: 'BA6CZ5D9U-OB9PAlrc7RjIkdDQHjWrype-_sAZUhBZK32lau5GA8LW_uKsKew3YMFLZlFCb5wBxqtzGcwaIzymY' 
         });
+        
+        if (token) {
+          console.log("Real Token:", token);
+          await fetch(`${import.meta.env.VITE_API_URL}/users/1/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fcm_token: token })
+          });
+        }
+      } catch (err) {
+        console.error("Token error:", err);
       }
-    } catch (err) {
-      console.error("Token error:", err);
-    }
-  };
-  getDeviceToken();
-}, []);
+    };
+    getDeviceToken();
+  }, []);
+
+  // Set up WebSocket for User Presence (Online Status)
+  useEffect(() => {
+    // Convert HTTP URL to WS URL
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const wsUrl = baseUrl.replace(/^http/, 'ws') + '/ws/1';
+    
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('🟢 WebSocket Connected: User is now ONLINE');
+      // Send a heartbeat every 30 seconds to keep the Redis presence active
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send('ping');
+        }
+      }, 30000);
+      
+      ws.onclose = () => clearInterval(pingInterval);
+    };
+
+    ws.onmessage = (event) => {
+      // In the future, the backend will send live notifications here!
+      console.log("WebSocket Message:", event.data);
+    };
+
+    ws.onerror = (error) => {
+      console.error('🔴 WebSocket Error:', error);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   return (
     <div className="min-h-screen font-sans text-slate-800">
@@ -184,7 +216,7 @@ const handleFireEvent = async (e) => {
     
     try {
       // 🚀 THE REAL PIPELINE: Hitting your FastAPI Gateway
-      const response = await fetch(`https://notification-olgf.onrender.com/events?user_id=1&event_type=user.alert`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/events?user_id=1&event_type=user.alert`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -204,15 +236,8 @@ const handleFireEvent = async (e) => {
         throw new Error(errorMsg);
       }
 
-    // 🚀 FIRE AN ACTUAL NATIVE DESKTOP/PHONE NOTIFICATION
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("🔔 Microservice Alert", {
-        body: payload,
-        icon: "/vite.svg", // Path to an icon if you have one
-        tag: "microservice-demo", // Prevents duplicate spamming stacking
-      });
-    }
-
+    // Note: Removed mock native notification to prepare for WebSocket integration.
+    
     // Keep your internal UI preview state active too
     setIsSending(false);
     setShowNotification(true);

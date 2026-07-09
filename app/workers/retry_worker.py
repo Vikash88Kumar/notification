@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from confluent_kafka import Consumer, Producer
 
 # Load environment variables from .env file
-env_path = Path(__file__).parent.parent.parent / ".env"
+env_path = Path(__file__).parent.parent / ".env" 
 load_dotenv(env_path)
 
 logging.basicConfig(level=logging.INFO)
