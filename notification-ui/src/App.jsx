@@ -524,6 +524,33 @@ fetch('https://api.yourdomain.com/events', {
         </p>
       </div>
 
+      {/* Step 5: Utility Client */}
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-2 h-full bg-purple-500"></div>
+        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+          <span className="bg-purple-500/20 text-purple-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">★</span> 
+          Pro Tip: Use the Utility Client
+        </h3>
+        <p className="text-sm text-slate-400 mb-6 pl-11">
+          Instead of making raw HTTP requests everywhere, create a reusable <code>NotificationClient</code> class in your backend. This abstracts away the URLs and API keys, making your code extremely clean.
+        </p>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
+          <pre>{`// 1. Initialize the client (handles API keys & URLs internally)
+const notifier = new NotificationClient();
+
+// 2. When a user logs in, register their token once:
+await notifier.registerUser("user-123", "test@email.com", "fcm-token-abc");
+
+// 3. Trigger events cleanly anywhere in your app:
+await notifier.sendEvent(
+  "user-123",
+  "Fee Payment",
+  "Please pay your tuition fee!",
+  ["push", "email"]
+);`}</pre>
+        </div>
+      </div>
+
     </div>
   );
 }
