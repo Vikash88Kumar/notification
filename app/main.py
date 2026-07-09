@@ -96,5 +96,5 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
             await websocket.receive_text()
             set_presence(user_id, "online", ttl=60)
     except Exception:
-        del active_connections[user_id]
+        active_connections.pop(user_id, None)
         clear_presence(user_id)
