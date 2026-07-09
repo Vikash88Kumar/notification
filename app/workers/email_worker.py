@@ -79,13 +79,42 @@ while True:
             # If payload is a dict with 'item', extract it, otherwise use as string
             message_text = payload_data.get('item', str(payload_data)) if isinstance(payload_data, dict) else str(payload_data)
 
+            event_type = event.get('event_type', 'Notification')
+            subject = f"Shareit Update: {event_type}"
+            title = "You have a new update"
+
+            # Customisable format overrides
+            if isinstance(payload_data, dict) and 'custom_template' in payload_data:
+                custom = payload_data['custom_template']
+                subject = custom.get('subject', subject)
+                title = custom.get('title', title)
+                message_text = custom.get('body', message_text)
+            else:
+                # Fixed formats for friends
+                if event_type == 'friend_request':
+                    subject = "New Friend Request on Shareit!"
+                    title = "Someone wants to connect"
+                    sender = payload_data.get('sender_name', 'Someone')
+                    message_text = f"<b>{sender}</b> has sent you a friend request. Log in to accept or decline."
+                elif event_type == 'friend_accepted':
+                    subject = "Friend Request Accepted!"
+                    title = "You have a new friend"
+                    friend = payload_data.get('friend_name', 'A user')
+                    message_text = f"<b>{friend}</b> has accepted your friend request. Say hi!"
+                elif event_type == 'friend_message':
+                    subject = "New Message from a Friend"
+                    title = "You have a new message"
+                    sender = payload_data.get('sender_name', 'A friend')
+                    # We assume message_text has the actual message text here
+                    message_text = f"<b>{sender}</b> sent you a message:<br><br><i>{message_text}</i>"
+
             html_content = f"""
             <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                 <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 30px 20px; text-align: center;">
                     <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">Shareit</h1>
                 </div>
                 <div style="padding: 40px 30px; background-color: #ffffff; color: #334155;">
-                    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">You have a new update</h2>
+                    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">{title}</h2>
                     <div style="background-color: #f8fafc; border-left: 4px solid #6366f1; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
                         <p style="font-size: 16px; line-height: 1.6; margin: 0; color: #334155;">{message_text}</p>
                     </div>
@@ -101,11 +130,11 @@ while True:
             # Send the email via Resend
             r = resend.Emails.send({
                 "from": "Shareit <onboarding@resend.dev>",
-                "to": email_address,
-                "subject": f"Shareit Update: {event.get('event_type', 'Notification')}",
+                "to": email,
+                "subject": subject,
                 "html": html_content
             })
-            logger.info(f"✅ Email sent to {email_address}!")
+            logger.info(f"✅ Email sent to {email}!")
             save_notification(event, "email", "sent")
             
         except Exception as e:

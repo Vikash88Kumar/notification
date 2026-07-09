@@ -65,10 +65,35 @@ while True:
         continue
 
     try:
+        payload_data = event.get('payload', {})
+        message_text = payload_data.get('item', str(payload_data)) if isinstance(payload_data, dict) else str(payload_data)
+        event_type = event.get('event_type', 'Notification')
+        
+        title = "New notification"
+        body = message_text
+        
+        if isinstance(payload_data, dict) and 'custom_template' in payload_data:
+            custom = payload_data['custom_template']
+            title = custom.get('title', title)
+            body = custom.get('body', body)
+        else:
+            if event_type == 'friend_request':
+                title = "New Friend Request!"
+                sender = payload_data.get('sender_name', 'Someone')
+                body = f"{sender} wants to connect with you."
+            elif event_type == 'friend_accepted':
+                title = "Friend Request Accepted!"
+                friend = payload_data.get('friend_name', 'A user')
+                body = f"{friend} is now your friend."
+            elif event_type == 'friend_message':
+                title = "New Message"
+                sender = payload_data.get('sender_name', 'A friend')
+                body = f"{sender}: {message_text}"
+
         messaging.send(messaging.Message(
             notification=messaging.Notification(
-                title="New notification",
-                body=str(event["payload"])
+                title=title,
+                body=body
             ),
             token=token
         ))
