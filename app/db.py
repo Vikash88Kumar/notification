@@ -51,18 +51,24 @@ def get_pref(user_id: str, channel: str) -> str:
 
 def save_notification(event: dict, channel: str, status: str = "pending") -> Notification:
     with SessionLocal() as db:
-        notification = Notification(
-            user_id=event.get("user_id"),
-            event_type=event.get("event_type"),
-            payload=event.get("payload", {}),
-            channel=channel,
-            status=status,
-            read=False,
-        )
-        db.add(notification)
-        db.commit()
-        db.refresh(notification)
-        return notification
+        try:
+            notification = Notification(
+                user_id=event.get("user_id"),
+                event_type=event.get("event_type"),
+                payload=event.get("payload", {}),
+                channel=channel,
+                status=status,
+                read=False,
+            )
+            db.add(notification)
+            db.commit()
+            db.refresh(notification)
+            return notification
+        except Exception as e:
+            # Prevent crashes if the user is not found or DB fails
+            print(f"Failed to save notification: {e}")
+            db.rollback()
+            return None
 
 
 def get_user_email(user_id: str):
