@@ -43,12 +43,46 @@ def startup_event() -> None:
 
 @app.get("/health")
 def health_check():
+    status = {"status": "ok", "components": {}}
+    
+    # 1. Check Database
     try:
         with SessionLocal() as db:
             db.execute(text("SELECT 1"))
-        return {"status": "ok", "database": "connected"}
+        status["components"]["database"] = "connected"
     except Exception as exc:
-        return {"status": "error", "database": "disconnected", "detail": str(exc)}
+        status["components"]["database"] = f"disconnected ({str(exc)})"
+        status["status"] = "error"
+        
+    # 2. Check Redis
+    try:
+        from .redis_client import redis_client
+        # Simple ping by setting and getting a dummy key
+        redis_client.set("health_check_ping", "pong", ex=5)
+        if redis_client.get("health_check_ping") == "pong":
+            status["components"]["redis"] = "connected"
+        else:
+            status["components"]["redis"] = "disconnected (ping failed)"
+            status["status"] = "error"
+    except Exception as exc:
+        status["components"]["redis"] = f"disconnected ({str(exc)})"
+        status["status"] = "error"
+        
+    # 3. Check Kafka
+    try:
+        from .producer import p
+        # Attempt to list topics (timeout after 2s) to check broker connectivity
+        topics = p.list_topics(timeout=2.0)
+        if topics:
+            status["components"]["kafka"] = "connected"
+        else:
+            status["components"]["kafka"] = "disconnected (timeout)"
+            status["status"] = "error"
+    except Exception as exc:
+        status["components"]["kafka"] = f"disconnected ({str(exc)})"
+        status["status"] = "error"
+
+    return status
 
 @app.post("/users/{user_id}/token")
 async def update_token(user_id: str, data: dict):
