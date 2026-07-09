@@ -433,48 +433,97 @@ function PhaseBadge({ y, label }) {
 
 function ApiGuideTab() {
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid md:grid-cols-2 gap-6">
-      <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
-        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Server size={20} className="text-indigo-400"/> POST /events</h2>
-        <p className="text-sm text-slate-400 mb-6">Fire an event to the API. We handle the multi-channel routing.</p>
-        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-          <pre>{`fetch('https://api.yourdomain.com/events', {
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto space-y-8">
+      
+      <div className="text-center mb-10">
+        <h2 className="text-3xl font-bold text-white mb-3">How Developers Integrate</h2>
+        <p className="text-slate-400">A step-by-step guide for your friends to integrate this engine into their own apps.</p>
+      </div>
+
+      {/* Step 1 */}
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
+        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+          <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">1</span> 
+          Frontend: Register Users
+        </h3>
+        <p className="text-sm text-slate-400 mb-6 pl-11">
+          When someone signs up on your friend's app, their app requests push notification permissions to get an FCM token. They then send that token and the user's email to our API.
+        </p>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
+          <pre>{`// Your friend's frontend calls YOUR API
+fetch('https://api.yourdomain.com/users/123/token', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-API-Key': 'your_secure_api_key'
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    email: "user@example.com",
+    fcm_token: "fGhz7..." // The device token
+  })
+});`}</pre>
+        </div>
+      </div>
+
+      {/* Step 2 */}
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-2 h-full bg-cyan-500"></div>
+        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+          <span className="bg-cyan-500/20 text-cyan-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">2</span> 
+          Frontend: Connect Presence
+        </h3>
+        <p className="text-sm text-slate-400 mb-6 pl-11">
+          When a user opens your friend's app, the app connects to your WebSocket. This tells the engine the user is <strong>Online</strong>, suppressing noisy emails/pushes in favor of in-app alerts.
+        </p>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
+          <pre>{`// Your friend's frontend connects to YOUR WebSocket
+const ws = new WebSocket('wss://api.yourdomain.com/ws/123');`}</pre>
+        </div>
+      </div>
+
+      {/* Step 3 */}
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
+        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+          <span className="bg-indigo-500/20 text-indigo-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">3</span> 
+          Backend: Fire an Event
+        </h3>
+        <p className="text-sm text-slate-400 mb-6 pl-11">
+          When something important happens (like a new friend request), your friend's backend simply fires a single event. They don't have to write complex email or push logic.
+        </p>
+        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 ml-11">
+          <pre>{`// Your friend's backend calls YOUR API
+fetch('https://api.yourdomain.com/events', {
+  method: 'POST',
+  headers: { 
+    'X-API-Key': 'their_api_key', 
+    'Content-Type': 'application/json' 
   },
   body: JSON.stringify({
-    user_id: "customer_992",
-    event_type: "payment.success",
-    force_delivery: true, // Bypass presence
-    contact_info: {
-      email: "user@example.com",
-      fcm_token: "fGhz7..."
-    },
+    user_id: "123",
+    event_type: "friend_request",
     payload: {
-      item: "Payment of $49.00 received!"
+      item: "Alex wants to be your friend!"
     }
   })
 });`}</pre>
         </div>
       </div>
 
-      <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
-        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Activity size={20} className="text-cyan-400"/> Presence API</h2>
-        <p className="text-sm text-slate-400 mb-6">Manually tell the engine your user is online to suppress spam.</p>
-        <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300 h-full">
-          <pre>{`// Mark User Online (expires in 5m)
-fetch('https://api.yourdomain.com/users/1/presence', {
-  method: 'POST'
-});
-
-// Mark User Offline instantly
-fetch('https://api.yourdomain.com/users/1/presence', {
-  method: 'DELETE'
-});`}</pre>
-        </div>
+      {/* Step 4 */}
+      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500"></div>
+        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+          <span className="bg-emerald-500/20 text-emerald-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">4</span> 
+          Engine: We Handle The Rest
+        </h3>
+        <p className="text-sm text-slate-400 pl-11 leading-relaxed">
+          Your friend's job is done! Now your powerful architecture takes over:<br/><br/>
+          <strong className="text-white">1. Kafka</strong> picks up the event.<br/>
+          <strong className="text-white">2. Orchestrator</strong> checks the database to see if user 123 has notifications enabled.<br/>
+          <strong className="text-white">3. Workers</strong> check Redis to see if user 123 is currently online.<br/>
+          <strong className="text-white">4. Smart Delivery:</strong> If offline, workers immediately format the template and deliver to Firebase or Resend. If online, the system skips the noisy email and delivers via WebSocket.
+        </p>
       </div>
+
     </div>
   );
 }
