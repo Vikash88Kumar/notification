@@ -51,7 +51,7 @@ def health_check():
         return {"status": "error", "database": "disconnected", "detail": str(exc)}
 
 @app.post("/users/{user_id}/token")
-async def update_token(user_id: int, data: dict):
+async def update_token(user_id: str, data: dict):
     from fastapi import HTTPException
     try:
         from .db import update_user_token
@@ -67,27 +67,59 @@ async def update_token(user_id: int, data: dict):
         return {"status": "success"}
     raise HTTPException(status_code=404, detail="User not found")
 
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+
+class ContactInfo(BaseModel):
+    email: Optional[str] = None
+    fcm_token: Optional[str] = None
+
+class EventPayload(BaseModel):
+    user_id: str
+    event_type: str
+    payload: Dict[str, Any]
+    channels: Optional[List[str]] = None
+    contact_info: Optional[ContactInfo] = None
+
+from fastapi import Security, Depends
+from fastapi.security import APIKeyHeader
+
+API_KEY_NAME = "X-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+def get_api_key(api_key: str = Security(api_key_header)):
+    expected_api_key = os.getenv("API_KEY", "default-dev-key")
+    if api_key != expected_api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Could not validate API Key")
+    return api_key
+
 @app.post("/events")
-def create_event(user_id: int, event_type: str, payload: dict):
+def create_event(event_req: EventPayload, api_key: str = Depends(get_api_key)):
     from fastapi import HTTPException
     event = {
         "event_id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "event_type": event_type,
-        "payload": payload,
+        "user_id": event_req.user_id,
+        "event_type": event_req.event_type,
+        "payload": event_req.payload,
     }
+    
+    if event_req.channels is not None:
+        event["channels"] = event_req.channels
+    if event_req.contact_info is not None:
+        event["contact_info"] = event_req.contact_info.model_dump()
+
     try:
-        publish("notification.events", key=str(user_id), value=event)
+        publish("notification.events", key=str(event_req.user_id), value=event)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
     return {"status": "queued", "event_id": event["event_id"]}
 
 
-active_connections: dict[int, WebSocket] = {}
-
+active_connections: dict[str, WebSocket] = {}
 
 @app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: int):
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
     await websocket.accept()
     active_connections[user_id] = websocket
     set_presence(user_id, "online", ttl=60)

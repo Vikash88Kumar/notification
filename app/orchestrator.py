@@ -41,16 +41,20 @@ while True:
     
     logger.info(f"Received event for User {user_id}. Routing...")
 
-    # 1. ALWAYS send to In-App (the database)
-    producer.produce("inapp.queue", value=json.dumps(event))
-    
-    # 2. Check DB preferences before sending to Push
-    if get_pref(user_id, "push") != "disabled":
-        producer.produce("push.queue", value=json.dumps(event))
-        
-    # 3. Check DB preferences before sending to Email
-    if get_pref(user_id, "email") != "disabled":
-        producer.produce("email.queue", value=json.dumps(event))
+    # Route event based on payload override or database preferences
+    target_channels = event.get("channels")
+    if target_channels is not None:
+        logger.info(f"Routing to specific channels overridden by payload: {target_channels}")
+        for ch in target_channels:
+            producer.produce(f"{ch}.queue", value=json.dumps(event))
+    else:
+        # Fallback to database preferences
+        if get_pref(user_id, "email") != "disabled":
+            producer.produce("email.queue", value=json.dumps(event))
+        if get_pref(user_id, "push") != "disabled":
+            producer.produce("push.queue", value=json.dumps(event))
+        if get_pref(user_id, "inapp") != "disabled":
+            producer.produce("inapp.queue", value=json.dumps(event))
 
     producer.flush()
     c.commit(msg)

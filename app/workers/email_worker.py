@@ -43,7 +43,7 @@ while True:
     
     try:
         event = json.loads(msg.value())
-        user_id = event["user_id"]
+        user_id = event.get("user_id")
 
         # Skip email if user is actively online in-app (avoid spam)
         if get_presence(user_id) == "online":
@@ -51,18 +51,23 @@ while True:
             save_notification(event, "email", "skipped")
             c.commit(msg)
             continue
-
-        email_address = get_user_email(user_id)
-        if not email_address:
-            logger.warning(f"No email found for user {user_id}, skipping.")
+        
+        # 1. Check if email was provided directly in the payload (Stateless SaaS)
+        email = event.get("contact_info", {}).get("email")
+        if not email:
+            # 2. Fallback to querying our own database
+            email = get_user_email(user_id)
+            
+        if not email:
+            logger.error(f"No email found for User {user_id}. Skipping.")
             save_notification(event, "email", "skipped")
             c.commit(msg)
             continue
 
         try:
             # Validate email format
-            if "@" not in email_address or "." not in email_address.split("@")[1]:
-                raise ValueError(f"Invalid email format: {email_address}")
+            if "@" not in email or "." not in email.split("@")[1]:
+                raise ValueError(f"Invalid email format: {email}")
             
             # Create a beautiful Shareit HTML template
             payload_data = event.get('payload', {})

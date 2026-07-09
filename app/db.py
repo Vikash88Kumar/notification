@@ -38,7 +38,7 @@ def get_db():
         db.close()
 
 
-def get_pref(user_id: int, channel: str) -> str:
+def get_pref(user_id: str, channel: str) -> str:
     with SessionLocal() as db:
         pref = (
             db.query(UserNotificationPref)
@@ -65,18 +65,18 @@ def save_notification(event: dict, channel: str, status: str = "pending") -> Not
         return notification
 
 
-def get_user_email(user_id: int):
+def get_user_email(user_id: str):
     with SessionLocal() as db:
         user = db.query(User).filter(User.id == user_id).first()
         return user.email if user else None
 
 
-def get_fcm_token(user_id: int):
+def get_fcm_token(user_id: str):
     with SessionLocal() as db:
         user = db.query(User).filter(User.id == user_id).first()
         return user.fcm_token if user else None
 
-def update_user_token(user_id: int, new_token: str, email: str = None):
+def update_user_token(user_id: str, new_token: str, email: str = None):
     with SessionLocal() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if user:

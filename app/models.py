@@ -12,7 +12,7 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(100), primary_key=True)
     email = Column(Text, nullable=True)
     fcm_token = Column(Text, nullable=True)
 
@@ -23,7 +23,7 @@ class User(Base):
 class UserNotificationPref(Base):
     __tablename__ = "user_notification_prefs"
 
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True, nullable=False)
+    user_id = Column(String(100), ForeignKey("users.id"), primary_key=True, nullable=False)
     channel = Column(String(20), primary_key=True, nullable=False)
     pref = Column(String(20), nullable=False, default="all")
 
@@ -34,7 +34,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(100), ForeignKey("users.id"), nullable=False)
     event_type = Column(String(100), nullable=True)
     payload = Column(JSONB, nullable=True)
     channel = Column(String(20), nullable=True)

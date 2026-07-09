@@ -253,14 +253,18 @@ const handleFireEvent = async (e) => {
     
     try {
       // 🚀 THE REAL PIPELINE: Hitting your FastAPI Gateway
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/events?user_id=1&event_type=user.alert`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-API-Key': 'default-dev-key'
         },
-        // We pass the typed message payload to the backend
         body: JSON.stringify({
-          item: payload 
+          user_id: "1",
+          event_type: "user.alert",
+          payload: {
+            item: `This is an offline test for vikash notification! microservice ${new Date().toLocaleTimeString()}`
+          }
         })
       });
 
