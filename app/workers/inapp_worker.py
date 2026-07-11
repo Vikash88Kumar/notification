@@ -4,6 +4,8 @@ import json, uuid
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
+import requests
+import os
 
 # Load environment variables from .env file
 env_path = Path(__file__).parent.parent / ".env" 
@@ -31,5 +33,17 @@ while True:
     event = json.loads(msg.value())
     save_notification(event, channel="inapp", status="sent")
     logger.debug(f"Saved in-app notification for user {event.get('user_id')}")
-    # if user connected via WebSocket, push live; else it'll show as unread on next fetch
+    
+    # Broadcast to live websocket via internal bridge
+    try:
+        port = os.environ.get('PORT', 8000)
+        requests.post(
+            f"http://localhost:{port}/internal/broadcast/{event.get('user_id')}",
+            json=event,
+            timeout=2
+        )
+        logger.info(f"Broadcasted to live websocket for user {event.get('user_id')}")
+    except Exception as e:
+        logger.warning(f"WebSocket broadcast failed (user might be on another node or offline): {e}")
+
     c.commit(msg)

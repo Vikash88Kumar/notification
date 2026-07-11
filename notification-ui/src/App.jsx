@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Server, Database, Mail, Smartphone, Bell, Workflow, 
   Code, Layout, Zap, ArrowRight, CheckCircle2, Terminal, Shield, Activity,
-  GitBranch, Wifi, WifiOff, MessageCircle, Check, X, RotateCcw, UserPlus, Heart, AtSign, AlertTriangle
+  GitBranch, Wifi, WifiOff, MessageCircle, Check, X, RotateCcw, UserPlus, Heart, AtSign, AlertTriangle, Copy
 } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
@@ -390,46 +390,69 @@ function PhaseBadge({ y, label }) {
           <PhaseBadge y="320" label="Phase 2: Event Trigger (e.g., Friend Request)" />
           <Arrow from="api" to="kafka" y="375" label="Publishes to 'notification.events' topic" />
  
-          <PhaseBadge y="410" label="Phase 3: Orchestration & Routing" />
+          <PhaseBadge y="410" label="Phase 3: Smart Orchestration & Routing" />
           <Arrow from="kafka" to="orchestrator" y="465" label="Consumes new event" />
-          <Arrow from="orchestrator" to="postgres" y="510" label="Checks user preferences (if enabled)" />
-          <Arrow from="orchestrator" to="kafka" y="555" label="Routes to 'push.queue' & 'email.queue'" />
+          <Arrow from="orchestrator" to="postgres" y="500" label="Resolves Database Preferences" />
+          <Arrow from="orchestrator" to="redis" y="535" label="Checks Presence (Online/Offline)" />
+          <Arrow from="orchestrator" to="kafka" y="570" label="Routes intelligently to Queues" />
  
-          <PhaseBadge y="590" label="Phase 4: Smart Delivery" />
-          <Arrow from="kafka" to="workers" y="645" label="Email/Push Workers consume event" />
-          <Arrow from="workers" to="redis" y="690" label="Checks if user is currently online" />
+          <PhaseBadge y="610" label="Phase 4: Multi-Channel Delivery" />
+          <Arrow from="kafka" to="workers" y="665" label="Workers consume event" />
  
           {/* alt fragment */}
           <rect
             x="20"
-            y="715"
+            y="700"
             width="1110"
-            height="205"
+            height="220"
             fill="none"
             stroke={C.altStroke}
             strokeWidth="1"
           />
           <path d="M 20 800 h 1110" stroke={C.altStroke} strokeDasharray="4 3" strokeWidth="1" />
-          <rect x="20" y="715" width="52" height="20" fill={C.altTagFill} stroke={C.altStroke} strokeWidth="1" />
-          <text x="46" y="729" textAnchor="middle" fontSize="10" fontWeight="600" fill={C.headerText}>
+          <rect x="20" y="700" width="52" height="20" fill={C.altTagFill} stroke={C.altStroke} strokeWidth="1" />
+          <text x="46" y="714" textAnchor="middle" fontSize="10" fontWeight="600" fill={C.headerText}>
             alt
           </text>
-          <text x="82" y="729" fontSize="10.5" fontStyle="italic" fill={C.condText}>
+          <text x="82" y="714" fontSize="10.5" fontStyle="italic" fill={C.condText}>
             [User is Online]
           </text>
-          <SelfLoop id="workers" y="755" label="Skips notification (Avoids spamming active user)" />
+          <Arrow from="workers" to="postgres" y="735" label="Saves Notification to DB" />
+          <Arrow from="workers" to="api" y="765" label="POST /internal/broadcast (HTTP Bridge)" />
+          <Arrow from="api" to="app" y="790" label="Delivers live JSON via WebSocket!" />
  
           <text x="30" y="816" fontSize="10.5" fontStyle="italic" fill={C.condText}>
             [User is Offline]
           </text>
           <Arrow from="workers" to="postgres" y="850" label="Fetches FCM Token / Email" />
           <SelfLoop id="workers" y="875" label="Formats predefined 'Friend Request' template" />
-          <Arrow from="workers" to="app" y="905" label="Delivers via Firebase/Resend!" />
+          <Arrow from="workers" to="app" y="905" label="Delivers via Firebase/Resend! (Push/Email)" />
         </svg>
       </div>
     </div>
   );
 }
+
+const CodeSnippet = ({ code }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code.trim());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="relative group bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
+      <button 
+        onClick={handleCopy} 
+        className="absolute top-3 right-3 p-2 rounded-md bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20 text-white flex items-center justify-center"
+        title="Copy code"
+      >
+        {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+      </button>
+      <pre className="pr-10 leading-relaxed whitespace-pre-wrap">{code.trim()}</pre>
+    </div>
+  );
+};
 
 function ApiGuideTab() {
   const [guideStep, setGuideStep] = useState('frontend');
@@ -439,23 +462,22 @@ function ApiGuideTab() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto space-y-8">
       <div className="text-center mb-10">
         <h2 className="text-3xl font-bold text-white mb-3">Integration Guide</h2>
-        <p className="text-slate-400">Step-by-step instructions to integrate the notification engine into your own projects.</p>
+        <p className="text-slate-400">Plug-and-play SDK classes and hooks to integrate the Notification Engine instantly.</p>
       </div>
 
-      {/* Guide Navigation */}
       <div className="flex justify-center mb-8">
         <div className="bg-white/5 p-1 rounded-xl border border-white/10 flex gap-1">
           <button 
             onClick={() => setGuideStep('frontend')}
             className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${guideStep === 'frontend' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
           >
-            Frontend Setup (React/JS)
+            Frontend / React
           </button>
           <button 
             onClick={() => setGuideStep('backend')}
             className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${guideStep === 'backend' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
           >
-            Backend Setup (API)
+            Backend / API
           </button>
         </div>
       </div>
@@ -463,103 +485,66 @@ function ApiGuideTab() {
       {guideStep === 'frontend' && (
         <div className="space-y-6">
           <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-            <h3 className="text-xl font-bold text-white mb-4">1. Initialize Firebase</h3>
-            <p className="text-sm text-slate-400 mb-4">First, set up Firebase in your React app to handle FCM.</p>
-            <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-<pre>{`// firebase.js
-import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+            <h3 className="text-xl font-bold text-white mb-4">1. Real-Time Presence & In-App Alerts (WebSocket)</h3>
+            <p className="text-sm text-slate-400 mb-4">Drop this custom React Hook into your frontend. Connecting to the socket automatically establishes "Online" presence, suppressing push/email noise.</p>
+            <CodeSnippet code={`
+import React, { useEffect, useState } from 'react';
 
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+export function useNotificationEngine(userId) {
+  const [notifications, setNotifications] = useState([]);
 
-export const app = initializeApp(firebaseConfig);
-export const messaging = getMessaging(app);
-`}</pre>
-            </div>
+  useEffect(() => {
+    if (!userId) return;
+
+    // Connect to the WebSocket Gateway
+    const ws = new WebSocket(\`wss://api.yourdomain.com/ws/\${userId}\`);
+
+    ws.onopen = () => {
+      console.log("Connected to Notification Engine. ONLINE.");
+      const interval = setInterval(() => ws.send("ping"), 30000);
+      return () => clearInterval(interval);
+    };
+
+    ws.onmessage = (event) => {
+      // Receive purely in-app real-time notification
+      const data = JSON.parse(event.data);
+      console.log("New Notification:", data);
+      setNotifications(prev => [data, ...prev]);
+    };
+
+    ws.onclose = () => console.log("Disconnected. OFFLINE.");
+    return () => ws.close();
+  }, [userId]);
+
+  return notifications;
+}
+            `} />
           </div>
 
           <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-            <h3 className="text-xl font-bold text-white mb-4">2. Request Permissions & Generate Token</h3>
-            <p className="text-sm text-slate-400 mb-4">When the user logs in, request permission and send the FCM token to YOUR backend.</p>
-            <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-<pre>{`// App.jsx or Login.jsx
-import { messaging } from "./firebase";
+            <h3 className="text-xl font-bold text-white mb-4">2. Registering Devices for Push</h3>
+            <p className="text-sm text-slate-400 mb-4">When generating an FCM token, send it to YOUR backend. Your backend will use the NotificationClient to forward it to the Engine.</p>
+            <CodeSnippet code={`
 import { getToken } from "firebase/messaging";
+import { messaging } from "./firebaseConfig";
+import axios from "axios";
 
-const requestNotificationPermission = async (userEmail) => {
+async function enablePushNotifications(userId, email) {
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       const token = await getToken(messaging, { 
-        vapidKey: 'YOUR_VAPID_KEY_FROM_FIREBASE_CONSOLE' 
+        vapidKey: 'YOUR_FIREBASE_VAPID_KEY' 
       });
       
-      // Send this token to YOUR backend
-      await fetch('https://your-backend.com/api/register-device', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail, fcmToken: token })
-      });
+      // Forward this securely to YOUR backend API
+      await axios.post('/api/register-device', { userId, fcmToken: token, email });
     }
-  } catch (error) {
-    console.error("Permission denied", error);
+  } catch (err) {
+    console.error("Push enable failed", err);
   }
-};`}</pre>
-            </div>
-          </div>
-
-          <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-            <h3 className="text-xl font-bold text-white mb-4">3. Handle Foreground Notifications</h3>
-            <p className="text-sm text-slate-400 mb-4">Listen for incoming push events while the user has your app open.</p>
-            <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-<pre>{`import { onMessage } from "firebase/messaging";
-
-useEffect(() => {
-  const unsubscribe = onMessage(messaging, (payload) => {
-    console.log("Message received:", payload);
-    // You can use a library like react-toastify to show this
-    alert(\`New Notification: \${payload.notification.title}\`);
-  });
-
-  return () => unsubscribe();
-}, []);`}</pre>
-            </div>
-          </div>
-          
-          <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-            <h3 className="text-xl font-bold text-white mb-4">4. Background Service Worker</h3>
-            <p className="text-sm text-slate-400 mb-4">Create a <code>firebase-messaging-sw.js</code> file in your <code>public/</code> folder to handle offline push notifications.</p>
-            <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-<pre>{`// public/firebase-messaging-sw.js
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-
-firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  projectId: "YOUR_PROJECT_ID",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-});
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.notification?.title || 'New Message';
-  const notificationOptions = {
-    body: payload.notification?.body,
-    icon: '/vite.svg'
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});`}</pre>
-            </div>
+}
+            `} />
           </div>
         </div>
       )}
@@ -572,178 +557,134 @@ messaging.onBackgroundMessage((payload) => {
                 onClick={() => setBackendLang('node')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${backendLang === 'node' ? 'bg-green-600/20 text-green-400' : 'text-slate-500 hover:text-slate-300'}`}
               >
-                🟢 Node.js / Express
+                🟢 Node.js
               </button>
               <button 
                 onClick={() => setBackendLang('python')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${backendLang === 'python' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
               >
-                🐍 Python / FastAPI
+                🐍 Python
               </button>
             </div>
           </div>
 
           <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-            <h3 className="text-xl font-bold text-white mb-4">1. The Utility Client</h3>
-            <p className="text-sm text-slate-400 mb-4">Add this client to your backend code. It abstracts all communication with the Notification Engine.</p>
-            <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-{backendLang === 'node' ? (
-<pre>{`// NotificationClient.js
+            <h3 className="text-xl font-bold text-white mb-4">1. The Plug-and-Play Client</h3>
+            <p className="text-sm text-slate-400 mb-4">Copy this class directly into your backend project. It handles all authentication and HTTP requests cleanly.</p>
+            {backendLang === 'node' ? (
+              <CodeSnippet code={`
 const axios = require('axios');
 
 class NotificationClient {
   constructor(baseUrl, apiKey) {
-    this.baseUrl = (baseUrl || process.env.NOTIFICATION_SERVICE_URL).replace(/\\/$/, "");
+    this.baseUrl = baseUrl.replace(/\\/$/, "");
     this.api = axios.create({
       baseURL: this.baseUrl,
       headers: { "X-API-Key": apiKey, "Content-Type": "application/json" }
     });
   }
 
-  // Proxies the FCM token from YOUR backend to the Notification Engine
-  async registerUser(userId, email, fcmToken) {
+  async registerDevice(userId, fcmToken, email = null) {
     try {
-      await this.api.post(\`/users/\${userId}/token\`, { email, fcm_token: fcmToken });
+      await this.api.post(\`/users/\${userId}/token\`, { fcm_token: fcmToken, email });
       return true;
-    } catch (error) {
-      console.error("Register error:", error);
+    } catch (err) {
+      console.error("Registration failed:", err.message);
       return false;
     }
   }
 
-  // Fires an event (e.g. 'new_comment')
-  async sendEvent(userId, eventType, message, actionUrl = null, channels = ["push", "email", "inapp"]) {
+  async triggerEvent(userId, eventType, title, body, actionUrl = null, forceChannels = null) {
     try {
-      await this.api.post('/events', { 
-        user_id: userId, 
-        event_type: eventType, 
-        payload: { item: message, actionUrl }, 
-        channels 
-      });
+      const payload = { user_id: userId, event_type: eventType, payload: { title, body, actionUrl } };
+      if (forceChannels) payload.channels = forceChannels;
+      
+      await this.api.post(\`/events\`, payload);
       return true;
-    } catch (error) {
-      console.error("Send event error:", error);
+    } catch (err) {
+      console.error("Event failed:", err.message);
       return false;
     }
   }
 }
-module.exports = new NotificationClient(process.env.NOTIF_URL, process.env.NOTIF_KEY);`}</pre>
-) : (
-<pre>{`# notification_client.py
+module.exports = new NotificationClient(process.env.NOTIF_API_URL, process.env.NOTIF_API_KEY);
+              `} />
+            ) : (
+              <CodeSnippet code={`
 import os
 import requests
 
 class NotificationClient:
-    def __init__(self, base_url: str = None, api_key: str = None):
-        self.base_url = base_url or os.getenv("NOTIFICATION_SERVICE_URL").rstrip("/")
+    def __init__(self, base_url: str, api_key: str):
+        self.base_url = base_url.rstrip("/")
         self.headers = { "X-API-Key": api_key, "Content-Type": "application/json" }
 
-    def register_user(self, user_id: str, email: str, fcm_token: str) -> bool:
+    def register_device(self, user_id: str, fcm_token: str, email: str = None) -> bool:
         try:
-            requests.post(f"{self.base_url}/users/{user_id}/token", 
-                json={"email": email, "fcm_token": fcm_token}, 
-                headers=self.headers).raise_for_status()
+            payload = {"fcm_token": fcm_token, "email": email}
+            requests.post(f"{self.base_url}/users/{user_id}/token", json=payload, headers=self.headers).raise_for_status()
             return True
-        except Exception as e:
+        except requests.RequestException as e:
             return False
 
-    def send_event(self, user_id: str, event_type: str, message: str, action_url: str = None) -> bool:
+    def trigger_event(self, user_id: str, event_type: str, title: str, body: str, action_url: str = None, force_channels: list = None) -> bool:
         payload = {
-            "user_id": user_id, 
+            "user_id": user_id,
             "event_type": event_type,
-            "payload": { "item": message, "actionUrl": action_url },
-            "channels": ["push", "email", "inapp"]
+            "payload": { "title": title, "body": body, "actionUrl": action_url }
         }
+        if force_channels: payload["channels"] = force_channels
+
         try:
             requests.post(f"{self.base_url}/events", json=payload, headers=self.headers).raise_for_status()
             return True
-        except Exception as e:
+        except requests.RequestException as e:
             return False
 
-notifier = NotificationClient()
-`}</pre>
-)}
-            </div>
+notifier = NotificationClient(os.getenv("NOTIF_API_URL"), os.getenv("NOTIF_API_KEY"))
+              `} />
+            )}
           </div>
 
           <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-            <h3 className="text-xl font-bold text-white mb-4">2. Register the User</h3>
-            <p className="text-sm text-slate-400 mb-4">When your frontend sends the FCM token (Step 1.2), receive it and forward it to the engine.</p>
-            <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-{backendLang === 'node' ? (
-<pre>{`// auth.controller.js
+            <h3 className="text-xl font-bold text-white mb-4">2. Usage Example</h3>
+            <p className="text-sm text-slate-400 mb-4">Now, just import the client and call its methods in your route handlers!</p>
+            {backendLang === 'node' ? (
+              <CodeSnippet code={`
 const notifier = require('./NotificationClient');
 
+// 1. When user logs in and grants permission:
 app.post('/api/register-device', async (req, res) => {
-  const { email, fcmToken } = req.body;
-  const userId = req.user.id; // from your auth middleware
-  
-  // Forward to notification engine
-  await notifier.registerUser(userId, email, fcmToken);
-  
+  await notifier.registerDevice(req.user.id, req.body.fcmToken, req.user.email);
   res.send({ success: true });
-});`}</pre>
-) : (
-<pre>{`# auth_controller.py
+});
+
+// 2. When a business event happens:
+app.post('/api/checkout', async (req, res) => {
+  // Fire event to Orchestrator (it automatically routes based on presence)
+  await notifier.triggerEvent(req.user.id, "payment_success", "Payment Received", "Thanks!");
+  res.send({ success: true });
+});
+              `} />
+            ) : (
+              <CodeSnippet code={`
 from notification_client import notifier
 
+# 1. When user logs in and grants permission:
 @app.post("/api/register-device")
 async def register_device(request: Request):
     data = await request.json()
-    user_id = request.state.user.id
-    
-    # Forward to notification engine
-    notifier.register_user(user_id, data["email"], data["fcmToken"])
-    
-    return {"success": True}`}</pre>
-)}
-            </div>
-          </div>
+    notifier.register_device(request.state.user.id, data["fcmToken"], data["email"])
+    return {"success": True}
 
-          <div className="bg-white/5 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-            <h3 className="text-xl font-bold text-white mb-4">3. Fire Events!</h3>
-            <p className="text-sm text-slate-400 mb-4">Whenever something happens in your app, just call <code>sendEvent</code>.</p>
-            <div className="bg-[#0a0a0a] border border-white/10 p-5 rounded-2xl text-sm overflow-x-auto font-mono text-slate-300">
-{backendLang === 'node' ? (
-<pre>{`// comment.controller.js
-const notifier = require('./NotificationClient');
-
-app.post('/api/videos/:id/comments', async (req, res) => {
-  const videoOwnerId = await getVideoOwner(req.params.id);
-  
-  // Your database logic...
-  
-  // Fire Notification
-  await notifier.sendEvent(
-    videoOwnerId, 
-    "new_comment", 
-    "Someone commented on your video!", 
-    \`/watch?v=\${req.params.id}\`
-  );
-  
-  res.send({ success: true });
-});`}</pre>
-) : (
-<pre>{`# comment_controller.py
-from notification_client import notifier
-
-@app.post("/api/videos/{video_id}/comments")
-async def add_comment(video_id: str):
-    video_owner_id = get_video_owner(video_id)
-    
-    # Your database logic...
-    
-    # Fire Notification
-    notifier.send_event(
-        video_owner_id, 
-        "new_comment", 
-        "Someone commented on your video!", 
-        f"/watch?v={video_id}"
-    )
-    
-    return {"success": True}`}</pre>
-)}
-            </div>
+# 2. When a business event happens:
+@app.post("/api/checkout")
+async def process_payment(request: Request):
+    # Fire event to Orchestrator (it automatically routes based on presence)
+    notifier.trigger_event(request.state.user.id, "payment_success", "Payment Received", "Thanks!")
+    return {"success": True}
+              `} />
+            )}
           </div>
 
         </div>

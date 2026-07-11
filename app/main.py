@@ -182,6 +182,18 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         active_connections.pop(user_id, None)
         clear_presence(user_id)
 
+@app.post("/internal/broadcast/{user_id}")
+async def broadcast_to_websocket(user_id: str, data: dict):
+    ws = active_connections.get(user_id)
+    if ws:
+        try:
+            await ws.send_json(data)
+            return {"status": "delivered"}
+        except Exception as e:
+            active_connections.pop(user_id, None)
+            return {"status": "failed", "error": str(e)}
+    return {"status": "offline"}
+
 if __name__ == "__main__":
     import os
     import uvicorn
