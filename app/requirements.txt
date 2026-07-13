@@ -9,3 +9,4 @@ pydantic
 resend
 firebase-admin
 python-dotenv
+redis

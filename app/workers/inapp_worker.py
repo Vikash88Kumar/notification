@@ -6,6 +6,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 import requests
 import os
+import redis
+
+# Initialize Redis client for Pub/Sub
+redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"), decode_responses=True)
 
 # Load environment variables from .env file
 env_path = Path(__file__).parent.parent / ".env" 
@@ -34,16 +38,11 @@ while True:
     save_notification(event, channel="inapp", status="sent")
     logger.debug(f"Saved in-app notification for user {event.get('user_id')}")
     
-    # Broadcast to live websocket via internal bridge
+    # Broadcast to live websocket via Redis Pub/Sub
     try:
-        port = os.environ.get('PORT', 8000)
-        requests.post(
-            f"http://localhost:{port}/internal/broadcast/{event.get('user_id')}",
-            json=event,
-            timeout=2
-        )
-        logger.info(f"Broadcasted to live websocket for user {event.get('user_id')}")
+        redis_client.publish("notifications:pubsub", json.dumps(event))
+        logger.info(f"Broadcasted to live websocket for user {event.get('user_id')} via Redis Pub/Sub")
     except Exception as e:
-        logger.warning(f"WebSocket broadcast failed (user might be on another node or offline): {e}")
+        logger.warning(f"Redis publish failed: {e}")
 
     c.commit(msg)

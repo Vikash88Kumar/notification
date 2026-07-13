@@ -1,10 +1,16 @@
 import uuid
+import asyncio
+import json
 from fastapi import FastAPI, WebSocket
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import firebase_admin
 from firebase_admin import credentials
+import redis.asyncio as aioredis
+
+redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"), decode_responses=True)
+
 
 secret_file_path = "/etc/secrets/Firebase-key"
 
@@ -36,9 +42,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def redis_listener():
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("notifications:pubsub")
+    print("Started Redis Pub/Sub listener for WebSockets")
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    data = json.loads(message["data"])
+                    user_id = data.get("user_id")
+                    if user_id:
+                        ws = active_connections.get(str(user_id))
+                        if ws:
+                            await ws.send_json(data)
+                except Exception as e:
+                    print(f"Error processing pubsub message: {e}")
+    except Exception as e:
+        print(f"Redis listener crashed: {e}")
+
 @app.on_event("startup")
-def startup_event() -> None:
+async def startup_event() -> None:
     init_db()
+    asyncio.create_task(redis_listener())
 
 
 @app.get("/health")
@@ -212,17 +238,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         active_connections.pop(user_id, None)
         clear_presence(user_id)
 
-@app.post("/internal/broadcast/{user_id}")
-async def broadcast_to_websocket(user_id: str, data: dict):
-    ws = active_connections.get(user_id)
-    if ws:
-        try:
-            await ws.send_json(data)
-            return {"status": "delivered"}
-        except Exception as e:
-            active_connections.pop(user_id, None)
-            return {"status": "failed", "error": str(e)}
-    return {"status": "offline"}
+# Removed /internal/broadcast since we use Redis Pub/Sub now
 
 if __name__ == "__main__":
     import os
