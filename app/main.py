@@ -42,29 +42,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 async def redis_listener():
     try:
         pubsub = redis_client.pubsub()
         await pubsub.subscribe("notifications:pubsub")
-        print("✅ Started Redis Pub/Sub listener for WebSockets")
+        logger.info("✅ Started Redis Pub/Sub listener for WebSockets")
         async for message in pubsub.listen():
-            print(f"📥 Redis Pub/Sub message received: {message}")
+            logger.info(f"📥 Redis Pub/Sub message received: {message}")
             if message["type"] == "message":
                 try:
                     data = json.loads(message["data"])
                     user_id = data.get("user_id")
-                    print(f"🔍 Processing notification for user: {user_id}")
+                    logger.info(f"🔍 Processing notification for user: {user_id}")
                     if user_id:
                         ws = active_connections.get(str(user_id))
                         if ws:
-                            print(f"⚡ Delivering WebSocket message to {user_id}")
+                            logger.info(f"⚡ Delivering WebSocket message to {user_id}")
                             await ws.send_json(data)
                         else:
-                            print(f"⚠️ WebSocket NOT FOUND for user {user_id}")
+                            logger.warning(f"⚠️ WebSocket NOT FOUND for user {user_id}")
                 except Exception as e:
-                    print(f"❌ Error processing pubsub message: {e}")
+                    logger.error(f"❌ Error processing pubsub message: {e}")
     except Exception as e:
-        print(f"🚨 Redis listener crashed: {e}")
+        logger.error(f"🚨 Redis listener crashed: {e}")
 
 # Keep a strong reference to background tasks to prevent garbage collection
 background_tasks = set()
