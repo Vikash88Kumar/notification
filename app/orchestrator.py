@@ -60,7 +60,14 @@ while True:
         if event_type in critical_events and get_pref(user_id, "email") != "disabled":
             target_channels.append("email")
     else:
-        logger.info(f"Routing to specific channels overridden by payload: {target_channels}")
+        logger.info(f"Routing to specific channels requested by payload: {target_channels}")
+        filtered_channels = []
+        for ch in target_channels:
+            if get_pref(user_id, ch) != "disabled":
+                filtered_channels.append(ch)
+            else:
+                logger.info(f"Channel '{ch}' disabled by user {user_id} preferences. Removing.")
+        target_channels = filtered_channels
 
     # Step 2: Apply Smart Presence Filtering
     presence = get_presence(user_id)
