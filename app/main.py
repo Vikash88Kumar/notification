@@ -43,28 +43,38 @@ app.add_middleware(
 )
 
 async def redis_listener():
-    pubsub = redis_client.pubsub()
-    await pubsub.subscribe("notifications:pubsub")
-    print("Started Redis Pub/Sub listener for WebSockets")
     try:
+        pubsub = redis_client.pubsub()
+        await pubsub.subscribe("notifications:pubsub")
+        print("✅ Started Redis Pub/Sub listener for WebSockets")
         async for message in pubsub.listen():
+            print(f"📥 Redis Pub/Sub message received: {message}")
             if message["type"] == "message":
                 try:
                     data = json.loads(message["data"])
                     user_id = data.get("user_id")
+                    print(f"🔍 Processing notification for user: {user_id}")
                     if user_id:
                         ws = active_connections.get(str(user_id))
                         if ws:
+                            print(f"⚡ Delivering WebSocket message to {user_id}")
                             await ws.send_json(data)
+                        else:
+                            print(f"⚠️ WebSocket NOT FOUND for user {user_id}")
                 except Exception as e:
-                    print(f"Error processing pubsub message: {e}")
+                    print(f"❌ Error processing pubsub message: {e}")
     except Exception as e:
-        print(f"Redis listener crashed: {e}")
+        print(f"🚨 Redis listener crashed: {e}")
+
+# Keep a strong reference to background tasks to prevent garbage collection
+background_tasks = set()
 
 @app.on_event("startup")
 async def startup_event() -> None:
     init_db()
-    asyncio.create_task(redis_listener())
+    task = asyncio.create_task(redis_listener())
+    background_tasks.add(task)
+    task.add_done_callback(background_tasks.discard)
 
 
 @app.get("/health")
