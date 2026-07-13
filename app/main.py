@@ -63,7 +63,8 @@ async def redis_listener():
                             logger.info(f"⚡ Delivering WebSocket message to {user_id}")
                             await ws.send_json(data)
                         else:
-                            logger.warning(f"⚠️ WebSocket NOT FOUND for user {user_id}")
+                            # In a multi-instance setup, it's normal for a connection to not be found on *this* instance
+                            logger.debug(f"ℹ️ WebSocket not present on this instance for user {user_id}")
                 except Exception as e:
                     logger.error(f"❌ Error processing pubsub message: {e}")
     except Exception as e:
