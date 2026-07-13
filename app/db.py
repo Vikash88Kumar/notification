@@ -49,6 +49,44 @@ def get_pref(user_id: str, channel: str) -> str:
         return pref.pref if pref else "all"
 
 
+def get_user_prefs(user_id: str) -> dict:
+    with SessionLocal() as db:
+        prefs = db.query(UserNotificationPref).filter(UserNotificationPref.user_id == user_id).all()
+        # Default all to enabled if not found
+        result = {"push": "all", "email": "all", "inapp": "all"}
+        for p in prefs:
+            result[p.channel] = p.pref
+        return result
+
+
+def set_pref(user_id: str, channel: str, pref_val: str) -> bool:
+    with SessionLocal() as db:
+        try:
+            # Ensure user exists first to satisfy foreign key constraints
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                user = User(id=user_id)
+                db.add(user)
+
+            pref = (
+                db.query(UserNotificationPref)
+                .filter(UserNotificationPref.user_id == user_id)
+                .filter(UserNotificationPref.channel == channel)
+                .first()
+            )
+            if pref:
+                pref.pref = pref_val
+            else:
+                pref = UserNotificationPref(user_id=user_id, channel=channel, pref=pref_val)
+                db.add(pref)
+            db.commit()
+            return True
+        except Exception as e:
+            print(f"Failed to set preference: {e}")
+            db.rollback()
+            return False
+
+
 def save_notification(event: dict, channel: str, status: str = "pending") -> Notification:
     with SessionLocal() as db:
         try:

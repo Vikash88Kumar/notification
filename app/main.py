@@ -113,6 +113,36 @@ async def clear_user_presence(user_id: str):
     clear_presence(user_id)
     return {"status": "success", "presence": "offline"}
 
+@app.get("/users/{user_id}/preferences")
+async def get_user_preferences(user_id: str):
+    from fastapi import HTTPException
+    try:
+        from .db import get_user_prefs
+    except ImportError:
+        from db import get_user_prefs
+    
+    prefs = get_user_prefs(user_id)
+    return {"user_id": user_id, "preferences": prefs}
+
+@app.put("/users/{user_id}/preferences")
+async def update_user_preferences(user_id: str, data: dict):
+    from fastapi import HTTPException
+    try:
+        from .db import set_pref
+    except ImportError:
+        from db import set_pref
+    
+    preferences = data.get("preferences", {})
+    if not isinstance(preferences, dict):
+        raise HTTPException(status_code=400, detail="preferences must be an object")
+        
+    for channel, pref_val in preferences.items():
+        success = set_pref(user_id, channel, pref_val)
+        if not success:
+            raise HTTPException(status_code=500, detail=f"Failed to save preference for {channel}")
+            
+    return {"status": "success", "user_id": user_id}
+
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 
