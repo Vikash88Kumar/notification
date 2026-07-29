@@ -77,6 +77,14 @@ while True:
         title = "New notification"
         body = message_text
         
+        if isinstance(payload_data, dict):
+            if 'title' in payload_data:
+                title = payload_data['title']
+            if 'message' in payload_data:
+                body = payload_data['message']
+            elif 'item' in payload_data:
+                body = payload_data['item']
+
         if isinstance(payload_data, dict) and 'custom_template' in payload_data:
             custom = payload_data['custom_template']
             title = custom.get('title', title)

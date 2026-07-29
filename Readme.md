@@ -69,7 +69,7 @@ If a user is marked as online, the engine will intelligently skip sending Emails
 3. **Orchestrator**: A consumer reads the event, evaluates Presence and routing preferences, and fans out the event into specific queues (`email.queue`, `push.queue`, `inapp.queue`).
 4. **Workers**: Dedicated Python workers consume from their specific queues, extract the stateless contact info, and execute the delivery using 3rd-party SDKs (Firebase/Resend).
 
-![Architecture Overview](https://img.shields.io/badge/Architecture-Kafka%20%2B%20FastAPI-blue?style=for-the-badge)
+[![Architecture Overview](./notification-ui/public/architecture.png)](./notification-ui/public/architecture.png)
 
 ---
 
