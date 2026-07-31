@@ -108,15 +108,22 @@ while True:
                 sender = payload_data.get('sender_name', 'A friend')
                 body = f"{sender}: {message_text}"
 
+        fcm_options = None
+        if link and isinstance(link, str) and link.startswith("https://"):
+            fcm_options = messaging.WebpushFCMOptions(link=link)
+        elif link:
+            frontend_base = os.getenv("FRONTEND_URL", "https://13.48.123.128.sslip.io").rstrip('/')
+            full_link = f"{frontend_base}/{str(link).lstrip('/')}"
+            if full_link.startswith("https://"):
+                fcm_options = messaging.WebpushFCMOptions(link=full_link)
+
         webpush_config = messaging.WebpushConfig(
             notification=messaging.WebpushNotification(
                 title=title,
                 body=body,
                 icon='/icons.svg'
             ),
-            fcm_options=messaging.WebpushFCMOptions(
-                link=link or '/'
-            )
+            fcm_options=fcm_options
         )
 
         data_payload = {}
