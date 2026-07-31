@@ -18,10 +18,12 @@ if os.path.exists(secret_file_path):
     # Use the file mounted by Render
     cred = credentials.Certificate(secret_file_path)
 else:
-    # Fallback to local file for development
-    cred = credentials.Certificate("firebase-key.json")
+    # Fallback to local file for development relative to project root
+    key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "firebase-key.json")
+    cred = credentials.Certificate(key_path)
 
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
 
 try:
     from .db import SessionLocal, init_db

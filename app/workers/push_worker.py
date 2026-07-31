@@ -28,9 +28,11 @@ secret_file_path = "/etc/secrets/Firebase-key"
 if os.path.exists(secret_file_path):
     cred = credentials.Certificate(secret_file_path)
 else:
-    cred = credentials.Certificate("firebase-key.json")
+    key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "firebase-key.json")
+    cred = credentials.Certificate(key_path)
 
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
 
 c = Consumer(get_kafka_config('push-worker'))
 c.subscribe(['push.queue'])
@@ -76,6 +78,7 @@ while True:
         
         title = "New notification"
         body = message_text
+        link = None
         
         if isinstance(payload_data, dict):
             if 'title' in payload_data:
@@ -84,6 +87,8 @@ while True:
                 body = payload_data['message']
             elif 'item' in payload_data:
                 body = payload_data['item']
+            if 'link' in payload_data:
+                link = payload_data['link']
 
         if isinstance(payload_data, dict) and 'custom_template' in payload_data:
             custom = payload_data['custom_template']
@@ -103,14 +108,38 @@ while True:
                 sender = payload_data.get('sender_name', 'A friend')
                 body = f"{sender}: {message_text}"
 
-        messaging.send(messaging.Message(
-            notification=messaging.Notification(
+        webpush_config = messaging.WebpushConfig(
+            notification=messaging.WebpushNotification(
+                title=title,
+                body=body,
+                icon='/icons.svg'
+            ),
+            fcm_options=messaging.WebpushFCMOptions(
+                link=link or '/'
+            )
+        )
+
+        data_payload = {}
+        if link:
+            data_payload['link'] = str(link)
+        if event_type:
+            data_payload['event_type'] = str(event_type)
+
+        msg_kwargs = {
+            "notification": messaging.Notification(
                 title=title,
                 body=body
             ),
-            token=token
-        ))
+            "webpush": webpush_config,
+            "token": token
+        }
+        if data_payload:
+            msg_kwargs["data"] = data_payload
+
+        messaging.send(messaging.Message(**msg_kwargs))
         logger.info(f"✅ Push sent to user {user_id}!")
+    except messaging.UnregisteredError:
+        logger.warning(f"⚠️ FCM token for user {user_id} is expired or unregistered.")
     except Exception as e:
         logger.error(f"❌ Push error: {e}. Sending to retry queue.")
         retry_producer.produce("notification.retry", key=str(user_id),
