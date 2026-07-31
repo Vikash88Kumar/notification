@@ -246,11 +246,24 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
     await websocket.accept()
     active_connections[user_id] = websocket
     set_presence(user_id, "online", ttl=60)
+
+    async def keep_presence_alive():
+        try:
+            while True:
+                await asyncio.sleep(25)
+                set_presence(user_id, "online", ttl=60)
+        except asyncio.CancelledError:
+            pass
+
+    presence_task = asyncio.create_task(keep_presence_alive())
     try:
         while True:
             await websocket.receive_text()
             set_presence(user_id, "online", ttl=60)
     except Exception:
+        pass
+    finally:
+        presence_task.cancel()
         active_connections.pop(user_id, None)
         clear_presence(user_id)
 
