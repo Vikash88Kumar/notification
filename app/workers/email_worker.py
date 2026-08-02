@@ -4,6 +4,7 @@ from confluent_kafka import Consumer, Producer
 import json
 import os
 import logging
+import urllib.request
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -14,11 +15,17 @@ load_dotenv(env_path)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Get Resend API Key from environment variable
-resend.api_key = os.getenv("RESEND_API_KEY")
-if not resend.api_key:
-    logger.warning("⚠️ RESEND_API_KEY not set in environment variables. Email service will not work!")
-    raise ValueError("RESEND_API_KEY environment variable is required")
+# Get Brevo and Resend API Keys from environment
+brevo_api_key = os.getenv("BREVO_API_KEY")
+brevo_sender_email = os.getenv("BREVO_SENDER_EMAIL", "resourcesharing67@gmail.com")
+brevo_sender_name = os.getenv("BREVO_SENDER_NAME", "Campus Resources")
+
+resend_api_key = os.getenv("RESEND_API_KEY")
+if resend_api_key:
+    resend.api_key = resend_api_key
+
+if not brevo_api_key and not resend_api_key:
+    logger.warning("⚠️ Neither BREVO_API_KEY nor RESEND_API_KEY is configured in .env!")
 
 try:
     from app.db import get_user_email, save_notification
@@ -127,18 +134,47 @@ while True:
             </div>
             """
 
-            # Send the email via Resend
-            r = resend.Emails.send({
-                "from": "Shareit <onboarding@resend.dev>",
-                "to": email,
-                "subject": subject,
-                "html": html_content
-            })
-            logger.info(f"✅ Email sent to {email}!")
+            # Send email via Brevo API or Resend fallback
+            if brevo_api_key:
+                url = "https://api.brevo.com/v3/smtp/email"
+                headers = {
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                    "api-key": brevo_api_key.strip(),
+                }
+                payload = {
+                    "sender": {
+                        "name": brevo_sender_name,
+                        "email": brevo_sender_email,
+                    },
+                    "to": [{"email": email}],
+                    "subject": subject,
+                    "htmlContent": html_content,
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers=headers,
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    res_body = response.read().decode("utf-8")
+                    logger.info(f"✅ Email sent via Brevo to {email}! Response: {res_body}")
+            elif resend_api_key:
+                r = resend.Emails.send({
+                    "from": f"{brevo_sender_name} <onboarding@resend.dev>",
+                    "to": email,
+                    "subject": subject,
+                    "html": html_content
+                })
+                logger.info(f"✅ Email sent via Resend to {email}!")
+            else:
+                raise ValueError("No valid email API key (BREVO_API_KEY or RESEND_API_KEY) found.")
+
             save_notification(event, "email", "sent")
             
         except Exception as e:
-            logger.error(f"❌ Resend error: {e}. Sending to retry queue.")
+            logger.error(f"❌ Email dispatch error: {e}. Sending to retry queue.")
             retry_producer.produce(
                 "notification.retry", 
                 key=str(user_id),
