@@ -50,7 +50,17 @@ while True:
     
     try:
         event = json.loads(msg.value())
-        user_id = event.get("user_id")
+        CRITICAL_EMAIL_EVENTS = {
+            "new_user", "auth.verification", "auth.welcome", "auth.reset_password",
+            "payment_success", "payment_failed", "payment", "payment.receipt",
+            "payment.refund", "deposit.confirmed", "deposit.released"
+        }
+        event_type = event.get("event_type", "")
+        if event_type not in CRITICAL_EMAIL_EVENTS:
+            logger.info(f"Skipping email delivery for non-critical event type '{event_type}'")
+            save_notification(event, "email", "skipped")
+            c.commit(msg)
+            continue
 
         # 1. Check if presence was provided directly in the payload (Stateless SaaS)
         presence = event.get("presence")
@@ -81,58 +91,71 @@ while True:
             if "@" not in email or "." not in email.split("@")[1]:
                 raise ValueError(f"Invalid email format: {email}")
             
-            # Create a beautiful Shareit HTML template
+            # Create a beautiful HTML template
             payload_data = event.get('payload', {})
-            # If payload is a dict with 'item', extract it, otherwise use as string
             message_text = payload_data.get('item', str(payload_data)) if isinstance(payload_data, dict) else str(payload_data)
 
-            event_type = event.get('event_type', 'Notification')
-            subject = f"Shareit Update: {event_type}"
-            title = "You have a new update"
+            subject = f"Campus Resources: {event_type.replace('_', ' ').replace('.', ' ').title()}"
+            title = "Critical Account Alert"
 
-            # Customisable format overrides
+            if isinstance(payload_data, dict):
+                if 'title' in payload_data:
+                    title = payload_data['title']
+                if 'message' in payload_data:
+                    message_text = payload_data['message']
+
             if isinstance(payload_data, dict) and 'custom_template' in payload_data:
                 custom = payload_data['custom_template']
                 subject = custom.get('subject', subject)
                 title = custom.get('title', title)
                 message_text = custom.get('body', message_text)
-            else:
-                # Fixed formats for friends
-                if event_type == 'friend_request':
-                    subject = "New Friend Request on Shareit!"
-                    title = "Someone wants to connect"
-                    sender = payload_data.get('sender_name', 'Someone')
-                    message_text = f"<b>{sender}</b> has sent you a friend request. Log in to accept or decline."
-                elif event_type == 'friend_accepted':
-                    subject = "Friend Request Accepted!"
-                    title = "You have a new friend"
-                    friend = payload_data.get('friend_name', 'A user')
-                    message_text = f"<b>{friend}</b> has accepted your friend request. Say hi!"
-                elif event_type == 'friend_message':
-                    subject = "New Message from a Friend"
-                    title = "You have a new message"
-                    sender = payload_data.get('sender_name', 'A friend')
-                    # We assume message_text has the actual message text here
-                    message_text = f"<b>{sender}</b> sent you a message:<br><br><i>{message_text}</i>"
 
-            html_content = f"""
-            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 30px 20px; text-align: center;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">Shareit</h1>
-                </div>
-                <div style="padding: 40px 30px; background-color: #ffffff; color: #334155;">
-                    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">{title}</h2>
-                    <div style="background-color: #f8fafc; border-left: 4px solid #6366f1; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-                        <p style="font-size: 16px; line-height: 1.6; margin: 0; color: #334155;">{message_text}</p>
-                    </div>
-                    <a href="https://notification-olgf.onrender.com" style="display: inline-block; background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 6px; font-weight: bold; margin-top: 10px;">View Dashboard</a>
-                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 13px;">
-                        <p style="margin: 0;">This is an automated message from Shareit.</p>
-                        <p style="margin: 5px 0 0 0;">© 2026 Shareit Inc. All rights reserved.</p>
-                    </div>
-                </div>
-            </div>
-            """
+            html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #FFFFFF; border-radius: 20px; border: 1px solid #E2E8F0; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05); overflow: hidden;">
+          
+          <!-- Top Header Bar -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #1F4B3F 0%, #0D2820 100%); padding: 32px 28px; text-align: center;">
+              <div style="display: inline-block; background: rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 8px 16px; margin-bottom: 12px;">
+                <span style="color: #FFFFFF; font-weight: 800; font-size: 16px; letter-spacing: 0.5px;">🤝 ShareNeighbour</span>
+              </div>
+              <h1 style="color: #FFFFFF; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.3;">{title}</h1>
+            </td>
+          </tr>
+
+          <!-- Email Content Body -->
+          <tr>
+            <td style="padding: 36px 32px; color: #334155; font-size: 14px; line-height: 1.6;">
+              <div style="background-color: #F8FAFC; border-left: 4px solid #10B981; padding: 18px 22px; border-radius: 0 12px 12px 0; margin-bottom: 24px;">
+                <p style="margin: 0; color: #1E293B; font-size: 14px; font-weight: 500; line-height: 1.6;">{message_text}</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F8FAFC; padding: 24px 32px; border-top: 1px solid #F1F5F9; text-align: center;">
+              <p style="margin: 0; font-weight: 700; color: #475569; font-size: 13px;">Campus Resource Sharing System</p>
+              <p style="margin: 4px 0 0 0; color: #94A3B8; font-size: 11px;">Automated Critical Activity Notification</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
 
             # Send email via Brevo API or Resend fallback
             if brevo_api_key:

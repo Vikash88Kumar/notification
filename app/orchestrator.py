@@ -56,13 +56,25 @@ while True:
             target_channels.append("inapp")
         
         # Event-driven Email rule
-        critical_events = ["new_user", "payment_success", "payment_failed", "payment"]
+        critical_events = [
+            "new_user", "auth.verification", "auth.welcome", "auth.reset_password",
+            "payment_success", "payment_failed", "payment", "payment.receipt",
+            "payment.refund", "deposit.confirmed", "deposit.released"
+        ]
         if event_type in critical_events and get_pref(user_id, "email") != "disabled":
             target_channels.append("email")
     else:
         logger.info(f"Routing to specific channels requested by payload: {target_channels}")
+        critical_events = [
+            "new_user", "auth.verification", "auth.welcome", "auth.reset_password",
+            "payment_success", "payment_failed", "payment", "payment.receipt",
+            "payment.refund", "deposit.confirmed", "deposit.released"
+        ]
         filtered_channels = []
         for ch in target_channels:
+            if ch == "email" and event_type not in critical_events:
+                logger.info(f"Skipping email channel for non-critical event '{event_type}'.")
+                continue
             if get_pref(user_id, ch) != "disabled":
                 filtered_channels.append(ch)
             else:
